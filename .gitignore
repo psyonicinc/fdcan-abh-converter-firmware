@@ -1,0 +1,16 @@
+/Debug/
+/MATLAB/dynamic_sim_II_grt_rtw/
+/MATLAB/slprj/.settings/language.settings.xml
+.settings/
+/Release/
+***.asv
+Inc/version.h
+Core/Inc/version.h
+ReleaseFull/
+ReleaseLinux/
+/ReleaseCopyBin/
+Python/*.wav
+Python/__pycache__/
+***autosave***.TSC
+DebugLinux/
+ReleaseFullLinux/
