@@ -32,6 +32,21 @@ buffer_t gl_dp_alias =
 		.len = 0
 };
 
+unsigned char cmd_buf[32] = {};	//32 is oversized - only needs to be 15
+buffer_t abh_cmd_alias =
+{
+		.buf = cmd_buf,
+		.size = sizeof(cmd_buf),
+		.len = 0
+};
+ppp_buffer_t abh_ppp_unstuffed_cmd_alias =
+{
+		.buf = cmd_buf,
+		.size = sizeof(cmd_buf),
+		.length = 0
+};
+
+
 
 int main(void)
 {
@@ -48,6 +63,7 @@ int main(void)
 
 //	uint32_t can_cmd_exp_ts = 0;
 	uint32_t led_ts = 0;
+	uint8_t trigger_abh_write = 0;
 	while (1)
 	{
 		uint32_t tick = HAL_GetTick();
@@ -69,11 +85,55 @@ int main(void)
 			    if(can_tx_alias.len != 0)
 			    {
 			    	send_fdcan_frame(MASTER_MISC_ADDRESS, &can_tx_alias);
+			    	trigger_abh_write = 1;
 			    }
 			}
 		}
 
 
+		if(trigger_abh_write)
+		{
+			switch(dp.abh_comms.command_header)
+			{
+				case FIXED_DUMMY_TX1:
+				case FIXED_DUMMY_TX2:
+				case FIXED_DUMMY_TX3:
+				case FIXED_POSITION_CONTROL_TX1:
+				case FIXED_POSITION_CONTROL_TX2:
+				case FIXED_POSITION_CONTROL_TX3:
+				case FIXED_VELOCITY_CONTROL_TX1:
+				case FIXED_VELOCITY_CONTROL_TX2:
+				case FIXED_VELOCITY_CONTROL_TX3:
+				case FIXED_TORQUE_CONTROL_TX1:
+				case FIXED_TORQUE_CONTROL_TX2:
+				case FIXED_TORQUE_CONTROL_TX3:
+				case FIXED_VOLTAGE_CONTROL_TX1:
+				case FIXED_VOLTAGE_CONTROL_TX2:
+				case FIXED_VOLTAGE_CONTROL_TX3:
+				{
+//					ahb_parse_movement_reply(&m_huart2.rx_decode_alias, &dp.abh_comms);
+					abh_create_movement_frame(&dp.abh_comms, &abh_cmd_alias);
+					abh_ppp_unstuffed_cmd_alias.length = abh_cmd_alias.len;	//type translation - point to same buffer but length must be copied through. a bit inelegant
+					PPP_stuff(&abh_ppp_unstuffed_cmd_alias, &m_huart2.tx_mem);
+					m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
+					break;
+				}
+				//todo: handle read/write register cases
+				default:
+				{
+					return ABH_ERROR_INVALID_HEADER;
+				}
+
+			};
+
+			trigger_abh_write = 0;
+		}
+
+
+
+
+
+		/*Reply Parser*/
 		if(m_huart2.rx_decoded.length != 0)
 		{
 			switch(dp.abh_comms.command_header)
@@ -97,6 +157,7 @@ int main(void)
 					ahb_parse_movement_reply(&m_huart2.rx_decode_alias, &dp.abh_comms);
 					break;
 				}
+				//todo: handle read/write register cases
 				default:
 				{
 					return ABH_ERROR_INVALID_HEADER;

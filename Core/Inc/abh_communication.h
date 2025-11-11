@@ -89,16 +89,19 @@ enum
  */
 typedef struct abh_api_t
 {
+	//Read-Write
 	uint8_t address;                                  /**< Device address for communication */
 	uint8_t command_header;                           /**< Frame type (e.g., FIXED_POSITION_CONTROL_TX1) */
-	uint8_t format_header;                            /**< Reply format header indicating data structure */
-	int16_t q[NUM_CHANNELS];                          /**< Actual position feedback from motors */
 	int16_t q_desired[NUM_CHANNELS];                  /**< Desired position setpoints for motors */
 	int16_t vq_desired[NUM_CHANNELS];                 /**< Desired voltage setpoints for motors */
-	int16_t iq[NUM_CHANNELS];                         /**< Actual current feedback from motors */
 	int16_t iq_desired[NUM_CHANNELS];                 /**< Desired current/torque setpoints for motors */
-	int16_t velocity[NUM_CHANNELS];                   /**< Actual velocity feedback from motors */
 	int16_t velocity_desired[NUM_CHANNELS];           /**< Desired velocity setpoints for motors */
+
+	//Read-Only (not enforced)
+	uint8_t format_header;                            /**< Reply format header indicating data structure */
+	int16_t q[NUM_CHANNELS];                          /**< Actual position feedback from motors */
+	int16_t iq[NUM_CHANNELS];                         /**< Actual current feedback from motors */
+	int16_t velocity[NUM_CHANNELS];                   /**< Actual velocity feedback from motors */
 	uint16_t fsr_raw[NUM_FINGERS*NUM_FSR_PER_FINGER];  /**< Raw FSR sensor values (12-bit packed data) */
 	uint8_t hot_cold_bitmask;                         /**< Status bitmask for motor temperature warnings */
 
