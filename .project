@@ -29,4 +29,16 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>Core/Src/C-COBS</name>
+			<type>2</type>
+			<location>D:/PSYONIC/workspace-cube-PSYONIC/fdcan-abh-converter-firmware/external/byte-stuffing/C-COBS</location>
+		</link>
+		<link>
+			<name>Core/Src/src</name>
+			<type>2</type>
+			<location>D:/PSYONIC/workspace-cube-PSYONIC/fdcan-abh-converter-firmware/external/dartt-protocol/src</location>
+		</link>
+	</linkedResources>
 </projectDescription>
