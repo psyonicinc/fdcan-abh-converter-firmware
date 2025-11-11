@@ -19,6 +19,7 @@
  */
 #include <FDCAN.h>
 #include "fds_params.h"
+#include "stm32_fdcan_helper.h"
 
 #define DEFAULT_V_REPORT_RADIX	4
 #define DEFAULT_IQ_RSHIFT		3	//estimated max value of iq is in the ~17bit domain. shift 3 to get it between 14-15bit
@@ -43,42 +44,8 @@ uint32_t				can_tx_mailbox;
 int send_fdcan_frame(uint16_t id, buffer_t * buffer)
 {
 	can_tx_header.Identifier = id;
-	if(buffer->len > 0 && buffer->len <= 8)
-	{
-		can_tx_header.DataLength = (buffer->len & 0xF) << 16;
-	}
-	else if (buffer->len > 8)	//could build a function that uses division and modulo arithmetic to accomplish this but i believe this is more performant for short messages cus you fall thru the if statements
-	{
-		if(buffer->len == 12)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_12;
-		}
-		else if(buffer->len == 16)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_16;
-		}
-		else if(buffer->len == 20)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_20;
-		}
-		else if(buffer->len == 24)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_24;
-		}
-		else if(buffer->len == 32)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_32;
-		}
-		else if(buffer->len == 48)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_48;
-		}
-		else if(buffer->len == 64)
-		{
-			can_tx_header.DataLength = FDCAN_DLC_BYTES_64;
-		}
-	}
-	else
+	can_tx_header.DataLength = set_stm32_fdcan_code(buffer->len);
+	if(can_tx_header.DataLength == 0)	//catch errors from either 0 length buffer, or invalid length buffer
 	{
 		return ERROR_INVALID_ARGUMENT;
 	}

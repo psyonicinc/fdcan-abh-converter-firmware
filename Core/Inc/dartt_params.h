@@ -13,8 +13,12 @@
 typedef struct dartt_params_t
 {
 	//ability hand struct
-	abh_api_t abh_comms;
 	fds_params_t fds_p;
+	abh_api_t abh_comms;
+
+	uint32_t register_target;	//target ability hand register
+	uint32_t register_write_val;	//write value to the register
+	uint32_t register_read_reply_val;	//read value from the register
 }dartt_params_t;
 
 extern dartt_params_t dp;

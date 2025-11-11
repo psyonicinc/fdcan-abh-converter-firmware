@@ -68,6 +68,7 @@ extern can_payload_t 			can_rx_data;
 extern uint32_t			can_tx_mailbox;
 
 int send_fdcan_frame(uint16_t id, buffer_t * buffer);
+int get_stm32_fdcan_length(uint32_t code);
 
 void FDCAN_Config(void);
 //void handle_ext_cmd(ext_cmd_flags_t * flags, uint8_t * d);
