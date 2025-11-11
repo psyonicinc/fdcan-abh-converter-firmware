@@ -17,7 +17,7 @@ typedef struct dartt_params_t
 	fds_params_t fds_p;
 }dartt_params_t;
 
-extern dartt_params_t dartt_params;
+extern dartt_params_t dp;
 extern buffer_t fs_alias;
 
 #endif /* INC_DARTT_PARAMS_H_ */
