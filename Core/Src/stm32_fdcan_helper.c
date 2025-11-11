@@ -6,6 +6,28 @@
  */
 #include "stm32_fdcan_helper.h"
 
+//lut for get length.
+static uint8_t fdcan_length_lookup[] =
+{
+		0,
+		1,
+		2,
+		3,
+		4,
+		5,
+		6,
+		7,
+		8,
+		12,
+		16,
+		20,
+		24,
+		32,
+		48,
+		64
+};
+
+
 /*
  * Function to parse the FDCAN_data_length_code present in the rx_header to an actual length value.
  * Returns zero on error
@@ -13,40 +35,9 @@
 int get_stm32_fdcan_length(uint32_t code)
 {
 	uint32_t len_nibble =  (code >> 16) & 0xF;
-	if(len_nibble >= 0 && len_nibble <= 8)
+	if(len_nibble >= 0 && len_nibble < sizeof(fdcan_length_lookup)/sizeof(uint8_t))
 	{
-		return (int)len_nibble;
-	}
-	else
-	{
-		if(code == FDCAN_DLC_CODE_12)
-		{
-			return 12;
-		}
-		else if(code == FDCAN_DLC_CODE_16)
-		{
-			return 16;
-		}
-		else if(code == FDCAN_DLC_CODE_20)
-		{
-			return 20;
-		}
-		else if(code == FDCAN_DLC_CODE_24)
-		{
-			return 24;
-		}
-		else if(code == FDCAN_DLC_CODE_32)
-		{
-			return 32;
-		}
-		else if(code == FDCAN_DLC_CODE_48)
-		{
-			return 48;
-		}
-		else if(code == FDCAN_DLC_CODE_64)
-		{
-			return 64;
-		}
+		return (int)fdcan_length_lookup[len_nibble];
 	}
 	return 0;
 }

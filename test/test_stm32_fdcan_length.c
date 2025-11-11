@@ -20,6 +20,11 @@ void test_get(void)
     TEST_ASSERT_EQUAL(32, get_stm32_fdcan_length(FDCAN_DLC_CODE_32));
     TEST_ASSERT_EQUAL(48, get_stm32_fdcan_length(FDCAN_DLC_CODE_48));
     TEST_ASSERT_EQUAL(64, get_stm32_fdcan_length(FDCAN_DLC_CODE_64));
+
+    TEST_ASSERT_EQUAL(0, get_stm32_fdcan_length(0));
+    TEST_ASSERT_EQUAL(0, get_stm32_fdcan_length(1));
+    TEST_ASSERT_EQUAL(0, get_stm32_fdcan_length(0x8000));
+    TEST_ASSERT_EQUAL(0, get_stm32_fdcan_length(65 << 24));
 }
 
 void test_set(void)
