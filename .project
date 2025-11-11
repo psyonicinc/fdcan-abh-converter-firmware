@@ -36,6 +36,11 @@
 			<location>D:/PSYONIC/workspace-cube-PSYONIC/fdcan-abh-converter-firmware/external/byte-stuffing/C-COBS</location>
 		</link>
 		<link>
+			<name>Core/Src/HDLC</name>
+			<type>2</type>
+			<location>D:/PSYONIC/workspace-cube-PSYONIC/fdcan-abh-converter-firmware/external/byte-stuffing/HDLC</location>
+		</link>
+		<link>
 			<name>Core/Src/src</name>
 			<type>2</type>
 			<location>D:/PSYONIC/workspace-cube-PSYONIC/fdcan-abh-converter-firmware/external/dartt-protocol/src</location>

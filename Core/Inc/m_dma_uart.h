@@ -9,7 +9,8 @@
 #define M_DMA_UART_H_
 #include "main.h"
 #include "stm32g4xx_it.h"
-#include "cobs.h"
+//#include "cobs.h"
+#include "PPP.h"
 #include "dartt.h"
 
 #define UART_IT_BUF_SIZE 64		//fw generically capable of handling 24 bytes incoming.
@@ -27,14 +28,14 @@ typedef struct uart_it_t
 	DMA_Channel_TypeDef * rxdma;
 	DMA_Channel_TypeDef * txdma;
 
-	cobs_buf_t rx_mem;	//raw data buffer
-	cobs_buf_t rx_decoded;	//cobs unstuffed
+	ppp_buffer_t rx_mem;	//raw data buffer
+	ppp_buffer_t rx_decoded;	//cobs unstuffed
 
 	buffer_t rx_decode_alias;
 	payload_layer_msg_t rx_pld_msg;
 
 
-	cobs_buf_t tx_mem;	//raw data buffer
+	ppp_buffer_t tx_mem;	//raw data buffer
 	buffer_t tx_buf_alias;
 }uart_it_t;
 

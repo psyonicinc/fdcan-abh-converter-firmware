@@ -12,6 +12,8 @@
 typedef struct fds_params_t
 {
 	uint32_t module_number;	//zero-pad this so it's 32bit aligned, for now
+	uint32_t uart_baud_rate;
+	uint32_t can_baud_rate;
 
 }fds_params_t;
 

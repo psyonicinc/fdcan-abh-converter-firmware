@@ -1,5 +1,7 @@
 #include "init.h"
 #include "FDCAN.h"
+#include "dartt_params.h"
+#include "fds.h"
 
 int main(void)
 {
@@ -11,7 +13,7 @@ int main(void)
 	MX_USART2_UART_Init();
 	FDCAN_Config();
 
-//	load_flash_params();
+	load_flash_params(&fs_alias);
 
 	while (1)
 	{
