@@ -10,6 +10,7 @@
 #include "init.h"
 #include "fds.h"
 #include "dartt.h"
+#include "stm32_fdcan_helper.h"
 
 #define PAYLOAD_SIZE_CAN 64
 //no matter what, the HAL backend loads 8 bytes of CAN data from registers. So you better be

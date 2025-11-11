@@ -4,6 +4,7 @@
 #include "fds.h"
 #include "m_dma_uart.h"
 
+
 //dartt rx payload helper memory
 payload_layer_msg_t gl_can_rx_pld_msg = {};
 
@@ -55,10 +56,10 @@ int main(void)
 		if(HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0) != 0)
 		{
 			HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &can_rx_header, can_rx_data.u8);
-			can_rx_alias.len = (can_rx_header.DataLength >> 16) & 0xF;
+			can_rx_alias.len = get_stm32_fdcan_length(can_rx_header.DataLength);
 			if(can_rx_header.Identifier == dp.fds_p.module_number)	//motor command - dartt specifies custom implementation
 			{
-				can_tx_header.Identifier = MASTER_MOTOR_ADDRESS;	//no dedicated 'motor messages' defined for this dartt device (yet)
+//				can_tx_header.Identifier = MASTER_MOTOR_ADDRESS;	//no dedicated 'motor messages' defined for this dartt device (yet)
 //				HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &can_tx_header, can_tx_data.u8);
 			}
 			else if (can_rx_header.Identifier == dartt_misc_address)
