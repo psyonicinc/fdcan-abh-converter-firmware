@@ -82,10 +82,10 @@ int main(void)
 			{
 			    dartt_frame_to_payload(&can_rx_alias, TYPE_ADDR_CRC_MESSAGE, PAYLOAD_ALIAS, &gl_can_rx_pld_msg);
 			    dartt_parse_general_message(&gl_can_rx_pld_msg, TYPE_ADDR_CRC_MESSAGE, &gl_dp_alias, &can_tx_alias);
+			    trigger_abh_write = 1;
 			    if(can_tx_alias.len != 0)
 			    {
 			    	send_fdcan_frame(MASTER_MISC_ADDRESS, &can_tx_alias);
-			    	trigger_abh_write = 1;
 			    }
 			}
 		}
@@ -153,7 +153,7 @@ int main(void)
 
 
 		/*Reply Parser*/
-		if(m_huart2.rx_decoded.length != 0)	//
+		if(m_huart2.rx_decoded.length != 0)	//race condition if the command header is overwritten during the subsequent uart command exchange. proper logic should copy the command header  to local var on a write initialization, then
 		{
 			m_huart2.rx_decoded.length = 0;
 			switch(dp.abh_comms.command_header)
