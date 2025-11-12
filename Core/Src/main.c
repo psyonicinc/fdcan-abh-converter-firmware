@@ -95,9 +95,6 @@ int main(void)
 		{
 			switch(dp.abh_comms.command_header)
 			{
-				case FIXED_DUMMY_TX1:
-				case FIXED_DUMMY_TX2:
-				case FIXED_DUMMY_TX3:
 				case FIXED_POSITION_CONTROL_TX1:
 				case FIXED_POSITION_CONTROL_TX2:
 				case FIXED_POSITION_CONTROL_TX3:
@@ -118,6 +115,28 @@ int main(void)
 					m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
 					break;
 				}
+				case FIXED_DUMMY_TX1:
+				case FIXED_DUMMY_TX2:
+				case FIXED_DUMMY_TX3:
+				case ENABLE_BLUETOOTH_RADIO:
+				case DISABLE_BLUETOOTH_RADIO:
+				case RESTART_HAND:
+				case API_EXIT_CMD:
+				{
+					abh_create_short_api_frame(&dp.abh_comms, &abh_cmd_alias);
+					abh_ppp_unstuffed_cmd_alias.length = abh_cmd_alias.len;	//type translation - point to same buffer but length must be copied through. a bit inelegant
+					PPP_stuff(&abh_ppp_unstuffed_cmd_alias, &m_huart2.tx_mem);
+					m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
+					break;
+				}
+				case UART_WRITE_REGISTER:
+				{
+					break;
+				}
+				case UART_READ_REGISTER:
+				{
+					break;
+				}
 				//todo: handle read/write register cases
 				default:
 				{
@@ -134,8 +153,9 @@ int main(void)
 
 
 		/*Reply Parser*/
-		if(m_huart2.rx_decoded.length != 0)
+		if(m_huart2.rx_decoded.length != 0)	//
 		{
+			m_huart2.rx_decoded.length = 0;
 			switch(dp.abh_comms.command_header)
 			{
 				case FIXED_DUMMY_TX1:
@@ -155,6 +175,14 @@ int main(void)
 				case FIXED_VOLTAGE_CONTROL_TX3:
 				{
 					ahb_parse_movement_reply(&m_huart2.rx_decode_alias, &dp.abh_comms);
+					break;
+				}
+				case UART_WRITE_REGISTER:
+				{
+					break;
+				}
+				case UART_READ_REGISTER:
+				{
 					break;
 				}
 				//todo: handle read/write register cases
