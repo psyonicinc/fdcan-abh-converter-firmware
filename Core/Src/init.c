@@ -6,6 +6,8 @@
  */
 #include "init.h"
 #include "m_dma_uart.h"
+#include "fds.h"
+#include "dartt_params.h"
 
 FDCAN_HandleTypeDef hfdcan1;
 
@@ -121,7 +123,7 @@ void MX_USART2_UART_Init(void)
 
 	/* USER CODE END USART2_Init 1 */
 	huart2.Instance = USART2;
-	huart2.Init.BaudRate = 2000000;
+	huart2.Init.BaudRate = p_fds_params->uart_baud_rate;
 	huart2.Init.WordLength = UART_WORDLENGTH_8B;
 	huart2.Init.StopBits = UART_STOPBITS_1;
 	huart2.Init.Parity = UART_PARITY_NONE;

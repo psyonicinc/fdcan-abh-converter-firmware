@@ -47,6 +47,7 @@ ppp_buffer_t abh_ppp_unstuffed_cmd_alias =
 };
 
 
+static uint8_t trigger_abh_write = 0;	//global for live expressions access
 
 int main(void)
 {
@@ -55,15 +56,14 @@ int main(void)
 	MX_GPIO_Init();
 	MX_DMA_Init();
 	MX_FDCAN1_Init();
-	MX_USART2_UART_Init();
 	FDCAN_Config();
 
 	load_flash_params(&fs_alias);
 	unsigned char dartt_misc_address = dartt_get_complementary_address((unsigned char)dp.fds_p.module_number);
+	MX_USART2_UART_Init();
 
 //	uint32_t can_cmd_exp_ts = 0;
 	uint32_t led_ts = 0;
-	uint8_t trigger_abh_write = 0;
 	while (1)
 	{
 		uint32_t tick = HAL_GetTick();
