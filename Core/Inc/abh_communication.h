@@ -16,6 +16,9 @@ extern "C" {
 #include <stdint.h>
 #include "dartt.h"
 
+/** @brief Maximum frame size (return frame, from the hand */
+#define NUM_I2C_API_BYTES 72
+
 /** @brief Number of motor control channels in the Ability Hand */
 #define NUM_CHANNELS 6
 

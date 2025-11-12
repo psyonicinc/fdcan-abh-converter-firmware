@@ -21,7 +21,7 @@
 #define TXEIE		(1 << 7)
 
 
-static uint8_t gl_rx_mem[UART_IT_BUF_SIZE] = {};
+static uint8_t gl_rx_mem[UART_RX_RECV_SIZE] = {};
 static uint8_t gl_rx_decoded[UART_IT_BUF_SIZE] =  {};
 static uint8_t gl_tx_mem[UART_IT_BUF_SIZE] = {};
 
