@@ -19,6 +19,9 @@ typedef struct dartt_params_t
 	uint32_t register_target;	//target ability hand register
 	uint32_t register_write_val;	//write value to the register
 	uint32_t register_read_reply_val;	//read value from the register
+
+	uint32_t abh_read_timeout;	//timeout for awaiting a read reply
+
 }dartt_params_t;
 
 extern dartt_params_t dp;

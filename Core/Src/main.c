@@ -46,6 +46,24 @@ ppp_buffer_t abh_ppp_unstuffed_cmd_alias =
 		.length = 0
 };
 
+typedef struct abh_read_reply_flags_t
+{
+	uint8_t read_pending;
+	uint32_t read_ts;
+}abh_read_reply_flags_t;
+
+abh_read_reply_flags_t gl_rrep = {};
+
+int flag_read_reply(abh_read_reply_flags_t * f, uint32_t tick)
+{
+	if(f == NULL)
+	{
+		return ERROR_INVALID_ARGUMENT;
+	}
+	f->read_pending = 1;
+	f->read_ts = tick;
+	return 0;
+}
 
 static uint8_t trigger_abh_write = 0;	//global for live expressions access
 
@@ -91,7 +109,7 @@ int main(void)
 		}
 
 
-		if(trigger_abh_write)
+		if(trigger_abh_write && gl_rrep.read_pending == 0)	//don't retransmit while awaiting an ability hand reply frame
 		{
 			switch(dp.abh_comms.command_header)
 			{
@@ -113,6 +131,7 @@ int main(void)
 					abh_ppp_unstuffed_cmd_alias.length = abh_cmd_alias.len;	//type translation - point to same buffer but length must be copied through. a bit inelegant
 					PPP_stuff(&abh_ppp_unstuffed_cmd_alias, &m_huart2.tx_mem);
 					m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
+					flag_read_reply(&gl_rrep, tick);
 					break;
 				}
 				case FIXED_DUMMY_TX1:
@@ -127,6 +146,7 @@ int main(void)
 					abh_ppp_unstuffed_cmd_alias.length = abh_cmd_alias.len;	//type translation - point to same buffer but length must be copied through. a bit inelegant
 					PPP_stuff(&abh_ppp_unstuffed_cmd_alias, &m_huart2.tx_mem);
 					m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
+					flag_read_reply(&gl_rrep, tick);
 					break;
 				}
 				case UART_WRITE_REGISTER:
@@ -144,17 +164,26 @@ int main(void)
 				}
 
 			};
-
 			trigger_abh_write = 0;
+
+			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 1);
+			led_ts = tick;
 		}
 
 
-
+		if(gl_rrep.read_pending != 0)
+		{
+			if((tick - gl_rrep.read_ts) > dp.abh_read_timeout)
+			{
+				gl_rrep.read_pending = 0;	//time out
+			}
+		}
 
 
 		/*Reply Parser*/
 		if(m_huart2.rx_decoded.length != 0)	//race condition if the command header is overwritten during the subsequent uart command exchange. proper logic should copy the command header  to local var on a write initialization, then
 		{
+			gl_rrep.read_pending = 0;
 			m_huart2.rx_decoded.length = 0;
 			switch(dp.abh_comms.command_header)
 			{
@@ -194,10 +223,9 @@ int main(void)
 		}
 
 
-		if(tick-led_ts > 500)
+		if(tick-led_ts > 25)
 		{
-			HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-			led_ts = tick;
+			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 0);
 		}
 
 	}
