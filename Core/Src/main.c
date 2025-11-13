@@ -138,9 +138,9 @@ int main(void)
 					break;
 				}
 				//todo: handle read/write register cases
-				default:
+				default:	//do something on error
 				{
-					return ABH_ERROR_INVALID_HEADER;
+					break;	// ABH_ERROR_INVALID_HEADER;
 				}
 
 			};
@@ -186,9 +186,9 @@ int main(void)
 					break;
 				}
 				//todo: handle read/write register cases
-				default:
+				default:	//do something on error
 				{
-					return ABH_ERROR_INVALID_HEADER;
+					break;	// ABH_ERROR_INVALID_HEADER;
 				}
 			};
 		}
