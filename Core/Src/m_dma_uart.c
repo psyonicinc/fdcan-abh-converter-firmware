@@ -6,6 +6,7 @@
  */
 #include "m_dma_uart.h"
 #include "PPP.h"
+#include "dartt_params.h"
 
 /* Flag to clear ALL uart-associated interrupt requests, without clobbering reserved bits
  * (1 << 20) | (1 << 17) | (1 << 12) | (1 << 11) | (1 << 9) | (1 << 8) | (1 << 7) | (1 << 6) | (1 << 4) | (1 << 3) | (1 << 2) | (1 << 1) | (1 << 0)
@@ -22,8 +23,9 @@
 
 
 static uint8_t gl_rx_mem[UART_RX_RECV_SIZE] = {};
-static uint8_t gl_rx_decoded[UART_IT_BUF_SIZE] =  {};
-static uint8_t gl_tx_mem[UART_IT_BUF_SIZE] = {};
+//static uint8_t gl_tx_mem[UART_IT_BUF_SIZE] = {};
+//static uint8_t gl_rx_decoded[UART_IT_BUF_SIZE] =  {};
+
 
 /*Initialize a baremetal uart handler structure for UART 1*/
 uart_it_t m_huart2 =
@@ -33,32 +35,32 @@ uart_it_t m_huart2 =
 		.txdma = DMA1_Channel2,
 		.rx_mem =
 		{
-				.buf = gl_rx_mem,
+				.buf = gl_rx_mem,//gl_rx_mem,
 				.size = sizeof(gl_rx_mem),
 				.length = 0,
 		},
 		.rx_decoded =
 		{
-				.buf = gl_rx_decoded,
-				.size = sizeof(gl_rx_decoded),
+				.buf = dp.uart_rx_decoded,
+				.size = sizeof(dp.uart_rx_decoded),
 				.length = 0,
 		},
 		.rx_decode_alias =
 		{
-				.buf = gl_rx_decoded,
-				.size = sizeof(gl_rx_decoded),
+				.buf = dp.uart_rx_decoded,
+				.size = sizeof(dp.uart_rx_decoded),
 				.len = 0
 		},
 		.tx_mem =
 		{
-				.buf = gl_tx_mem,
-				.size = sizeof(gl_tx_mem),
+				.buf = dp.uart_tx_mem,//gl_tx_mem,
+				.size = sizeof(dp.uart_tx_mem),
 				.length = 0,
 		},
 		.tx_buf_alias =
 		{
-				.buf = gl_tx_mem,
-				.size = sizeof(gl_tx_mem),
+				.buf = dp.uart_tx_mem,
+				.size = sizeof(dp.uart_tx_mem),
 				.len = 0
 		},
 		.rx_pld_msg = {}
@@ -138,6 +140,7 @@ void m_uart_it_handler(uart_it_t * h)
 			h->rxdma->CCR |= DMA_CCR_EN;
 			PPP_unstuff(&h->rx_decoded, &h->rx_mem);
 			h->rx_decode_alias.len = h->rx_decoded.length; //dumb, but we have to copy the length because we have a dartt buffer and cobs buffer. Should really do something to unify these..
+			dp.nbytes_decoded_uart = h->rx_decoded.length;	//copy length into the dartt-exposed parameter as well, so a dartt read can find it
 		}
 	}
 	h->Instance->ICR |=  ICR_CLEAR_ALL;	//clear all remaining interrupt flags to avoid a storm

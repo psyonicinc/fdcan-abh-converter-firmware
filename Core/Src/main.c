@@ -86,7 +86,6 @@ int main(void)
 				case FIXED_VOLTAGE_CONTROL_TX2:
 				case FIXED_VOLTAGE_CONTROL_TX3:
 				{
-//					ahb_parse_movement_reply(&m_huart2.rx_decode_alias, &dp.abh_comms);
 					abh_create_movement_frame(&dp.abh_comms, &abh_cmd_alias);
 					abh_ppp_unstuffed_cmd_alias.length = abh_cmd_alias.len;	//type translation - point to same buffer but length must be copied through. a bit inelegant
 					PPP_stuff(&abh_ppp_unstuffed_cmd_alias, &m_huart2.tx_mem);
@@ -117,10 +116,17 @@ int main(void)
 				{
 					break;
 				}
-				//todo: handle read/write register cases
-				default:	//do something on error
+				//TODO: handle read/write register cases
+				default:	//if the command header is invalid (i.e. zero) and we have a nonzero number of requested bytes to write via dartt, write them out!
 				{
-					break;	// ABH_ERROR_INVALID_HEADER;
+					if(dp.nbytes_write_uart != 0)
+					{
+						//queue out a transmission
+						m_huart2.tx_mem.length = dp.nbytes_write_uart;
+						dp.nbytes_write_uart = 0;	//clear to prevent repeat transmissions
+						m_uart_dma_transmit(&m_huart2);	//this function uses encoded length, so a second length copy is not necessary
+					}
+					break;
 				}
 
 			};
@@ -129,7 +135,6 @@ int main(void)
 			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 1);
 			led_ts = tick;
 		}
-
 
 		if(gl_rrep.read_pending != 0)
 		{
@@ -174,7 +179,7 @@ int main(void)
 				{
 					break;
 				}
-				//todo: handle read/write register cases
+				//TODO: handle read/write register cases
 				default:	//do something on error
 				{
 					break;	// ABH_ERROR_INVALID_HEADER;

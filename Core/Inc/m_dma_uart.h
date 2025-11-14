@@ -13,9 +13,6 @@
 #include "PPP.h"
 #include "dartt.h"
 
-#define UART_RX_RECV_SIZE 	150
-#define UART_IT_BUF_SIZE 	74		//fw generically capable of handling 24 bytes incoming.
-
 /*The following structure is used to implement
  * the baremetal interrupt handler. The actual
  * handler should be populated with the handler function and a unique instance
