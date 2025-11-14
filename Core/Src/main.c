@@ -188,6 +188,12 @@ int main(void)
 		}
 
 
+		if(dp.update_nonvolatile_storage != 0)
+		{
+			m_write_flash((uint64_t*)fs_alias.buf,fs_alias.size/sizeof(uint64_t));
+			dp.update_nonvolatile_storage = 0;
+		}
+
 		if(tick-led_ts > 25)
 		{
 			HAL_GPIO_WritePin(LED_GPIO_Port,LED_Pin, 0);
