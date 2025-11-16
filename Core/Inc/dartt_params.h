@@ -12,8 +12,9 @@
 #include "m_dma_uart.h"
 
 #define UART_RX_RECV_SIZE 	152
-#define UART_IT_BUF_SIZE 	74		//fw generically capable of handling 24 bytes incoming.
+#define UART_IT_BUF_SIZE 	76		//fw generically capable of handling 24 bytes incoming.
 
+#define NBYTES_GIT_HASH_BUFFER	 16
 
 typedef struct dartt_params_t
 {
@@ -28,8 +29,10 @@ typedef struct dartt_params_t
 
 	uint8_t uart_rx_decoded[UART_IT_BUF_SIZE];	//buffer containing raw (HDLC decoded) data frames, recieved over UART from the interface controller.
 	uint16_t nbytes_decoded_uart;	//number of bytes in the decoded buffer. Defines the valid buffer size.
-	uint8_t uart_tx_mem[UART_IT_BUF_SIZE+sizeof(uint16_t)];	//pad this by 2 bytes so the struct stays 32bit aligned
+	uint8_t uart_tx_mem[UART_IT_BUF_SIZE];	//pad this by 2 bytes so the struct stays 32bit aligned
 	uint32_t nbytes_write_uart;			//number of bytes to write over UART. Updating this value triggers a write
+
+	uint8_t git_hash_buffer[NBYTES_GIT_HASH_BUFFER];
 
 	uint8_t update_nonvolatile_storage;	//flag which, when set, triggers a one-time filesystem update. Flag is cleared upon completion of update operation.
 
