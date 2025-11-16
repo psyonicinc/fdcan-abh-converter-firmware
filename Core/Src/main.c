@@ -33,12 +33,11 @@ int main(void)
 	SystemClock_Config();
 	MX_GPIO_Init();
 	MX_DMA_Init();
-	MX_FDCAN1_Init();
-	FDCAN_Config();
-
 	load_flash_params(&fs_alias);
 	unsigned char dartt_misc_address = dartt_get_complementary_address((unsigned char)dp.fds_p.module_number);
 	MX_USART2_UART_Init();
+	MX_FDCAN1_Init();
+	FDCAN_Config();
 
 //	uint32_t can_cmd_exp_ts = 0;
 	uint32_t led_ts = 0;
