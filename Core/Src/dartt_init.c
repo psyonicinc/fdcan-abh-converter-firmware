@@ -6,7 +6,8 @@
  */
 #include "dartt_init.h"
 #include "FDCAN.h"
-#include "dartt_params.h"
+#include "version.h"
+
 
 //dartt rx payload helper memory
 payload_layer_msg_t gl_can_rx_pld_msg = {};
@@ -49,3 +50,11 @@ ppp_buffer_t abh_ppp_unstuffed_cmd_alias =
 		.length = 0
 };
 
+
+void copy_git_hash_to_dartt(dartt_params_t * p_dp)
+{
+	for(int i = 0; firmware_version[i] != 0 && i < sizeof(p_dp->git_hash_buffer); i++)
+	{
+		p_dp->git_hash_buffer[i] = firmware_version[i];
+	}
+}

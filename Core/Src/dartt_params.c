@@ -24,8 +24,16 @@ dartt_params_t dp =
 		.register_target = 0,
 		.register_write_val = 0,
 		.register_read_reply_val = 0,
+		.abh_read_timeout = 5,
 
-		.abh_read_timeout = 5
+		.uart_rx_decoded = {},
+		.nbytes_decoded_uart = 0,
+		.uart_tx_mem = {},
+		.nbytes_write_uart = 0,
+
+		.git_hash_buffer = {},
+
+		.update_nonvolatile_storage = 0
 };
 
 fds_params_t * p_fds_params = &dp.fds_p;	//shortcut to filesystem parameters

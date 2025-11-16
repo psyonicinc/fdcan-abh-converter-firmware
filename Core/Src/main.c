@@ -35,6 +35,7 @@ int main(void)
 	MX_DMA_Init();
 	load_flash_params(&fs_alias);
 	unsigned char dartt_misc_address = dartt_get_complementary_address((unsigned char)dp.fds_p.module_number);
+	copy_git_hash_to_dartt(&dp);
 	MX_USART2_UART_Init();
 	MX_FDCAN1_Init();
 	FDCAN_Config();
