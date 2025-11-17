@@ -37,7 +37,7 @@
 
 This Interface Control Document (ICD) defines the electrical, functional, and protocol interfaces for the **FDCAN-ABH Converter** firmware. This firmware implements a bidirectional bridge between:
 
-- **CAN interface** using the DARTT (Direct Access Register Table Transfer) protocol
+- **CAN interface** using the DARTT (Dual Address Real-Time Transport) protocol
 - **UART interface** using the Psyonic Ability Hand Extended Mode API protocol
 
 ### 1.2 System Overview
@@ -78,37 +78,12 @@ This document is intended for:
 |-------------|-------|---------|
 | ABH-ICD-001 | Ability Hand Interface Control Document | Rev 3.0 |
 | DARTT-SPEC | DARTT Protocol Specification | Latest |
-| RFC 1662 | PPP in HDLC-like Framing | STD 51 |
-
-### 2.2 Reference Documents
-
-| Standard | Title |
-|----------|-------|
-| ISO 11898-1 | Controller Area Network (CAN) - Part 1: Data link layer |
-| MIL-STD-498 | Software Development and Documentation |
-| STM32G4 Reference Manual | RM0440 Rev 7 |
 
 ---
 
 ## 3. Interface Overview
 
-### 3.1 System Context
-
-```
-┌──────────────────┐         CAN Bus          ┌────────────────────┐         UART          ┌─────────────────┐
-│  CAN Controller  │◄────────────────────────►│ FDCAN-ABH Converter│◄────────────────────►│  Ability Hand   │
-│  (DARTT Client)  │   DARTT Protocol         │   (This Device)    │  Extended Mode API   │   (Prosthetic)  │
-└──────────────────┘                          └────────────────────┘                       └─────────────────┘
-                                                      │
-                                                      │ Flash
-                                                      ▼
-                                              ┌───────────────┐
-                                              │   Non-Volatile│
-                                              │   Storage     │
-                                              └───────────────┘
-```
-
-### 3.2 Interface Summary
+### 3.1 Interface Summary
 
 | Interface | Direction | Protocol | Purpose |
 |-----------|-----------|----------|---------|
@@ -118,7 +93,7 @@ This document is intended for:
 | UART RX | Input | Ability Hand API | Receive feedback from prosthetic |
 | Flash | Storage | N/A | Persist configuration across power cycles |
 
-### 3.3 Key Features
+### 3.2 Key Features
 
 - **Dual Operating Modes:** High-level API or low-level pass-through
 - **Automatic Frame Construction:** Generate properly formatted UART frames from structured commands
@@ -135,10 +110,11 @@ This document is intended for:
 #### 4.1.1 Physical Layer
 
 - **Bus Standard:** CAN FD (ISO 11898-1)
-- **Nominal Bit Rate:** 800 kbit/s (default, configurable)
+- **Nominal Bit Rate:** 500 kbit/s (default, configurable)
 - **Data Bit Rate:** Same as nominal (FDCAN not utilizing data phase speed-up)
-- **Transceiver:** External CAN transceiver required
-- **Termination:** External 120Ω termination required at bus ends
+- **Transceiver:** Integrated 5V CAN transceiver (on-board)
+- **Termination:** Integrated 120Ω termination resistor (on-board)
+- **Bus Signals:** CANH and CANL differential pair
 
 #### 4.1.2 CAN Addressing
 
@@ -147,30 +123,86 @@ The converter uses a configurable CAN arbitration ID scheme:
 | Parameter | Default Value | Configuration Register |
 |-----------|---------------|------------------------|
 | Module Number | 0x50 | MODULE_NUMBER (0x000) |
-| Primary CAN ID | module_number | Read from MODULE_NUMBER |
 | Complementary CAN ID | 0x7FF - module_number | Calculated (0x7AF default) |
 
 **Addressing Rules:**
-- Primary ID used for DARTT block transfers
-- Complementary ID used for response messages
+- **DEFAULT CAN ID**: 0x7AF
+- Primary ID - not used
+- Complementary ID used for all DARTT messages
 - Module number must be unique on the CAN bus
 - Valid range: 0x01 - 0x7FE
 
 #### 4.1.3 DARTT Protocol
 
-The DARTT (Direct Access Register Table Transfer) protocol provides block memory read/write access over CAN.
+The DARTT (Dual Address Real-Time Transport) protocol provides block memory read/write access over CAN.
 
 **Key Characteristics:**
 - **Word Size:** 32 bits (4 bytes)
 - **Addressing:** Word-aligned (addresses are word indexes, not byte offsets)
 - **Access Modes:** Block read, block write
-- **Endianness:** Little-endian
-- **Maximum Block Size:** Implementation-dependent (typically 8 words/CAN frame)
+- **Endianness:** Little-endian (index and num_bytes fields)
+- **Payload Endianness:** Application-defined - Little-endian for this device
+- **Maximum Block Size:** Application-defined - 6 bytes maximum for this device
+- **Message Type:** TYPE_ADDR_CRC_MESSAGE (Type 2) - CAN provides addressing and error checking
 
-**Frame Format:**
-- Standard DARTT frame structure (refer to DARTT-SPEC)
-- Supports both read and write transactions
-- Atomic 32-bit word access guaranteed
+**CAN Frame Formats:**
+
+This device uses DARTT Type 2 messages (TYPE_ADDR_CRC_MESSAGE), which rely on CAN's built-in arbitration ID and CRC, eliminating protocol overhead.
+
+**Write Frame (Controller → Converter):**
+
+| Bytes 0-1 | Bytes 2-N |
+|-----------|-----------|
+| Index (R=0) | Payload Data |
+
+- **Index**: 16-bit little-endian word index (bit 15 = 0 for write)
+- **Payload**: N bytes of data to write (between 4 and 6 on this device for standard CAN compatibility)
+
+**Read Request Frame (Controller → Converter):**
+
+| Bytes 0-1 | Bytes 2-3 |
+|-----------|-----------|
+| Index (R=1) | Num Bytes |
+
+- **Index**: 16-bit little-endian word index (bit 15 = 1 for read)
+- **Num Bytes**: 16-bit little-endian byte count to read. Requesting more than 8 bytes from this device will result in no response.
+
+**Read Reply Frame (Converter → Controller):**
+
+| Bytes 0-N |
+|-----------|
+| Requested Data Block |
+
+- **Data Block**: N bytes of requested data (raw payload)
+
+**Index Encoding:**
+```
+Word Index 0 → Byte offset 0   → DARTT Index field = 0x0000
+Word Index 1 → Byte offset 4   → DARTT Index field = 0x0001
+Word Index 2 → Byte offset 8   → DARTT Index field = 0x0002
+...
+Word Index N → Byte offset 4N  → DARTT Index field = 0x000N
+
+For reads:  Index field = 0x8000 | word_index  (bit 15 = 1)
+For writes: Index field = 0x0000 | word_index  (bit 15 = 0)
+```
+
+**Example - Write 8 bytes to word index 0x008:**
+```
+CAN ID: 0x7AF
+Payload: [0x08, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]
+         |Index=0x0008| |------ 6 bytes of data --------|
+```
+
+**Example - Read 6 bytes from word index 0x014:**
+```
+CAN ID: 0x7AF
+Payload: [0x14, 0x80, 0x06, 0x00]
+         |Index=0x8014| |Num=6 |
+Reply:
+CAN ID: 0x7AF
+Payload: [12 bytes of data from word 0x014-0x016]
+```
 
 ### 4.2 UART Interface
 
@@ -293,20 +325,20 @@ These registers define persistent configuration parameters stored in flash memor
 |------------|---------------|------|--------|---------|-------------|
 | 0x000 | MODULE_NUMBER | uint32_t | R/W-NV | 0x50 | CAN module address. Complementary address: 0x7FF - module_number |
 | 0x001 | UART_BAUD_RATE | uint32_t | R/W-NV | 460800 | UART baud rate in bits/second. See Section 4.2.2 for valid values |
-| 0x002 | FDCAN_NBRP | uint32_t | R/W-NV | 1 | FDCAN Nominal Bit Rate Prescaler. Range: 1-512 |
-| 0x003 | FDCAN_NTSEG1 | uint32_t | R/W-NV | 63 | FDCAN Nominal Time Segment 1. Range: 2-256 |
-| 0x004 | FDCAN_NTSEG2 | uint32_t | R/W-NV | 16 | FDCAN Nominal Time Segment 2. Range: 2-128 |
+| 0x002 | FDCAN_NBRP | uint32_t | R/W-NV | 2 | FDCAN Nominal Bit Rate Prescaler. Range: 1-512 |
+| 0x003 | FDCAN_NTSEG1 | uint32_t | R/W-NV | 135 | FDCAN Nominal Time Segment 1. Range: 2-256 |
+| 0x004 | FDCAN_NTSEG2 | uint32_t | R/W-NV | 34 | FDCAN Nominal Time Segment 2. Range: 2-128 |
 | 0x005 | UNUSED_ZEROPAD | uint32_t | RO | 0 | Alignment padding for 64-bit flash alignment requirement |
 
 **CAN Bit Rate Calculation:**
 
 ```
-Nominal_Bit_Rate = 64_MHz / (NBRP × (1 + NTSEG1 + NTSEG2))
+Nominal_Bit_Rate = 170_MHz / (NBRP × (1 + NTSEG1 + NTSEG2))
 ```
 
 **Default Example:**
 ```
-64_MHz / (1 × (1 + 63 + 16)) = 64_MHz / 80 = 800 kbit/s
+170_MHz / (2 × (1 + 135 + 34)) = 170_MHz / 340 = 500 kbit/s
 ```
 
 **Configuration Notes:**
@@ -314,6 +346,7 @@ Nominal_Bit_Rate = 64_MHz / (NBRP × (1 + NTSEG1 + NTSEG2))
 - Invalid CAN timing parameters may cause bus communication failure
 - Sample point = (1 + NTSEG1) / (1 + NTSEG1 + NTSEG2) × 100%
 - Default sample point: 80%
+- Peripheral clock (PCLK): 170 MHz (STM32G4 maximum)
 
 ---
 
@@ -813,7 +846,7 @@ This section provides detailed step-by-step command sequences for common operati
 | 1 | Read module number | 0x000 | Expected: 0x50 | Verify CAN address |
 | 2 | Read UART baud rate | 0x001 | Expected: 460800 | Verify UART config |
 | 3 | Read firmware version | 0x053-0x056 | N/A | Log for diagnostics |
-| 4 | Verify CAN timing | 0x002-0x004 | NBRP=1, NTSEG1=63, NTSEG2=16 | Confirm 800 kbit/s |
+| 4 | Verify CAN timing | 0x002-0x004 | NBRP=2, NTSEG1=135, NTSEG2=34 | Confirm 500 kbit/s |
 
 **Expected Completion Time:** <10 ms
 
@@ -1169,12 +1202,12 @@ If flash contains invalid or corrupted data, firmware uses these defaults:
 |-----------|---------------|----------|
 | MODULE_NUMBER | 0x50 | 0x000 |
 | UART_BAUD_RATE | 460800 | 0x001 |
-| FDCAN_NBRP | 1 | 0x002 |
-| FDCAN_NTSEG1 | 63 | 0x003 |
-| FDCAN_NTSEG2 | 16 | 0x004 |
+| FDCAN_NBRP | 2 | 0x002 |
+| FDCAN_NTSEG1 | 135 | 0x003 |
+| FDCAN_NTSEG2 | 34 | 0x004 |
 | UNUSED_ZEROPAD | 0 | 0x005 |
 
-**CAN Bit Rate:** 800 kbit/s (calculated from defaults)
+**CAN Bit Rate:** 500 kbit/s (calculated from defaults)
 
 ### 9.5 Configuration Validation
 
@@ -1210,17 +1243,21 @@ The firmware performs basic validation on boot:
 
 | Parameter | Min | Typ | Max | Unit | Notes |
 |-----------|-----|-----|-----|------|-------|
-| Supply Voltage | 4.5 | 5.0 | 5.5 | V | External transceiver supply |
-| Logic High (CANTX) | 2.0 | 3.3 | 3.6 | V | MCU output to transceiver |
-| Logic Low (CANTX) | 0 | 0 | 0.4 | V | MCU output to transceiver |
-| Input Threshold (CANRX) | 0.8 | - | 2.0 | V | Transceiver to MCU input |
-| Bit Rate (nominal) | 10 | 800 | 1000 | kbit/s | Default: 800 kbit/s |
+| Transceiver Supply Voltage | 4.5 | 5.0 | 5.5 | V | Integrated 5V CAN transceiver |
+| Differential Voltage (CANH-CANL) Dominant | 1.5 | 2.0 | 3.0 | V | Bus dominant state |
+| Differential Voltage (CANH-CANL) Recessive | -0.5 | 0 | 0.05 | V | Bus recessive state |
+| Common Mode Voltage | 2.0 | 2.5 | 3.0 | V | Both CANH and CANL |
+| Bit Rate (nominal) | 125 | 500 | 1000 | kbit/s | Default: 500 kbit/s, classic CAN compliant |
 | Bus Load (max recommended) | - | 60 | 80 | % | For reliable operation |
+| Termination Resistance | - | 120 | - | Ω | Integrated on-board |
 
-**External Components Required:**
-- CAN transceiver (e.g., TI SN65HVD230, NXP TJA1050)
-- 120Ω termination resistors (at bus ends)
-- Common mode choke (optional, for EMI)
+**Integrated Components:**
+- 5V CAN transceiver (on-board)
+- 120Ω termination resistor (on-board)
+
+**External Connection:**
+- CANH and CANL differential pair to CAN bus
+- Device acts as bus termination node (place at bus end or disable external terminations)
 
 ### 10.3 UART Interface
 
@@ -1792,7 +1829,7 @@ int hdlc_stuff(uint8_t *unstuffed, int unstuffed_len, uint8_t *stuffed) {
 |------|------------|
 | ABH | Ability Hand - Psyonic's prosthetic hand device |
 | CAN | Controller Area Network - Serial communication protocol |
-| DARTT | Direct Access Register Table Transfer - Block memory protocol over CAN |
+| DARTT | Dual Address Real-Time Transport - Block memory protocol over CAN |
 | FDCAN | Flexible Data-rate CAN - Enhanced CAN protocol (ISO 11898-1) |
 | FSR | Force-Sensitive Resistor - Pressure sensor |
 | HDLC | High-Level Data Link Control - Byte stuffing protocol (RFC 1662) |
