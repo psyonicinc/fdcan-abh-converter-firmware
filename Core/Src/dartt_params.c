@@ -12,9 +12,9 @@ dartt_params_t dp =
 		.fds_p = {
 				.module_number = 0x50,
 				.uart_baud_rate = 460800,
-				.fdcan_NBRP = 1,
-				.fdcan_NTSEG1 = 63,
-				.fdcan_NTSEG2 = 16
+				.fdcan_NBRP = 2,
+				.fdcan_NTSEG1 = 135,
+				.fdcan_NTSEG2 = 34
 		},
 		.abh_comms = {
 				.address = 0x50,

@@ -28,7 +28,7 @@ typedef struct dartt_params_t
 	uint32_t abh_read_timeout;	//timeout for awaiting a read reply
 
 	uint8_t uart_rx_decoded[UART_IT_BUF_SIZE];	//buffer containing raw (HDLC decoded) data frames, recieved over UART from the interface controller.
-	uint16_t nbytes_decoded_uart;	//number of bytes in the decoded buffer. Defines the valid buffer size.
+	uint32_t nbytes_decoded_uart;	//number of bytes in the decoded buffer. Defines the valid buffer size.
 	uint8_t uart_tx_mem[UART_IT_BUF_SIZE];	//pad this by 2 bytes so the struct stays 32bit aligned
 	uint32_t nbytes_write_uart;			//number of bytes to write over UART. Updating this value triggers a write
 

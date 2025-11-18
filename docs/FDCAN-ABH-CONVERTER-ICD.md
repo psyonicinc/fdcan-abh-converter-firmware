@@ -284,10 +284,14 @@ The FDCAN-ABH Converter exposes all configurable parameters and operational data
 | 0x000 | Non-Volatile Configuration | 6 | CAN and UART configuration parameters |
 | 0x006 | Ability Hand Control API | 40 | High-level motor control interface |
 | 0x02E | Register Access Interface | 3 | Direct register read/write (unimplemented) |
-| 0x031 | UART Direct Buffers | 40 | Raw UART buffers for pass-through mode |
-| 0x059 | System Information | 5 | Firmware version and control flags |
+| 0x031 | ABH Read Timeout | 1 | Reply timeout configuration |
+| 0x032 | UART RX Decoded Buffer | 19 | HDLC-decoded receive buffer (76 bytes) |
+| 0x045 | UART RX Byte Count | 1 | Valid bytes in RX buffer  |
+| 0x046 | UART TX Buffer | 19 | Raw transmit buffer (76 bytes, requires HDLC stuffing) |
+| 0x059 | UART TX Byte Count | 1 | TX trigger - write byte count to initiate transmission |
+| 0x05A | System Information | 5 | Firmware version and control flags |
 
-**Total Memory Map Size:** 94 words (376 bytes)
+**Total Memory Map Size:** 95 words (380 bytes)
 
 ---
 
