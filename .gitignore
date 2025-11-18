@@ -15,3 +15,14 @@ Python/__pycache__/
 DebugLinux/
 ReleaseFullLinux/
 build/
+
+# LaTeX auxiliary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
+*.toc
+*.out
+*.lot
+*.lof
