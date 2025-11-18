@@ -685,336 +685,17 @@ In this mode, the controller has direct access to UART buffers and is responsibl
 
 ### 6.3 Mode Selection
 
-The converter does **not** have an explicit mode selection register. The operational mode is implicitly determined by which registers the controller accesses:
+The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007):
 
-- **Automatic Mode:** Access Block 2 registers (0x006-0x026)
-- **Pass-Through Mode:** Access Block 4 registers (0x02A-0x052)
+- **Automatic Mode:** Set ABH_COMMAND_HEADER to a valid command
+- **Pass-Through Mode:** Set ABH_COMMAND_HEADER to 0x00 (or any unmapped value)
 
-**Note:** The two modes can be mixed, but this is not recommended as it may lead to race conditions where automatic frame generation conflicts with manual buffer writes.
+**CRITICAL:** Before using pass-through mode (direct UART buffer access), the ABH_COMMAND_HEADER register **must** be set to 0x00 or another unmapped value. Failure to do so will cause internal collisions between automatic frame generation and manual buffer writes, resulting in undefined behavior.
 
-### 6.4 Recommended Mode Selection
-
-| Application | Recommended Mode | Rationale |
-|-------------|------------------|-----------|
-| Position control loop | Automatic | Simplicity, high update rate |
-| Velocity control loop | Automatic | Simplicity, high update rate |
-| Torque control loop | Automatic | Simplicity, high update rate |
-| Register configuration | Pass-Through | Requires custom commands |
-| Firmware updates | Pass-Through | Custom protocol |
-| Diagnostics | Pass-Through | Direct access needed |
-| Production systems | Automatic | Reliability, simplicity |
-
+**Mode Transition Procedure:**
+1. To enter pass-through mode: Write 0x00 to ABH_COMMAND_HEADER (0x007)
+2. To enter automatic mode: Write desired command header to ABH_COMMAND_HEADER (0x007)
 ---
-
-## 7. Command Sequences
-
-This section provides detailed step-by-step command sequences for common operations.
-
-### 7.1 System Initialization
-
-#### 7.1.1 Sequence: Power-On Configuration Verification
-
-**Purpose:** Verify configuration after power-on or reset.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Read module number | 0x000 | Expected: 0x50 | Verify CAN address |
-| 2 | Read UART baud rate | 0x001 | Expected: 460800 | Verify UART config |
-| 3 | Read firmware version | 0x053-0x056 | N/A | Log for diagnostics |
-| 4 | Verify CAN timing | 0x002-0x004 | NBRP=2, NTSEG1=135, NTSEG2=34 | Confirm 500 kbit/s |
-
-**Expected Completion Time:** <10 ms
-
-#### 7.1.2 Sequence: First-Time Configuration
-
-**Purpose:** Configure a new converter module for specific CAN ID and baud rate.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Write new module number | 0x000 | User-defined (e.g., 0x51) | Must be unique on bus |
-| 2 | Write UART baud rate | 0x001 | User-defined (e.g., 460800) | See Section 4.2.2 |
-| 3 | Optionally adjust CAN timing | 0x002-0x004 | User-defined | For non-standard bus rates |
-| 4 | Trigger flash write | 0x057 | 1 | Commit to non-volatile |
-| 5 | Wait for completion | 0x057 | Read until 0 | Auto-clears when done |
-| 6 | Power cycle | N/A | N/A | Required for changes to take effect |
-
-**Expected Completion Time:** 100-200 ms (flash write time)
-
-**CAUTION:** Do not interrupt power during flash write (Step 4-5).
-
-### 7.2 Position Control (Automatic Mode)
-
-#### 7.2.1 Sequence: Single Position Command with Feedback
-
-**Purpose:** Command finger positions and read back actual positions.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Set command header | 0x007 | 0x10 | Position control, reply variant 1 |
-| 2 | Set device address | 0x006 | 0x50 | Default Ability Hand address |
-| 3 | Write position setpoints | 0x008-0x00A | Motor commands | Scaled: angle/150 × 32767 |
-| 4 | Wait for reply | N/A | Delay 10-50 ms | Depends on UART latency |
-| 5 | Read position feedback | 0x014-0x016 | N/A | Actual motor positions |
-| 6 | Read current feedback | 0x017-0x019 | N/A | Actual motor currents |
-| 7 | Check temperature status | 0x025 | N/A | Monitor for warnings |
-
-**Expected Completion Time:** 10-50 ms (round-trip)
-
-**Example - Command all fingers to 90°:**
-
-```
-angle_desired = 90° (degrees)
-position_digital = (90 / 150) × 32767 = 19660 (0x4CCC)
-
-Write to registers:
-0x008 = 0x4CCC4CCC  (Motors 0-1: both 90°)
-0x009 = 0x4CCC4CCC  (Motors 2-3: both 90°)
-0x00A = 0x4CCC4CCC  (Motors 4-5: both 90°)
-```
-
-#### 7.2.2 Sequence: High-Frequency Position Control Loop
-
-**Purpose:** Continuous position control at 1 kHz update rate.
-
-| Step | Action | Register | Frequency | Notes |
-|------|--------|----------|-----------|-------|
-| 1 | Initialize command header | 0x007 | Once | Set to 0x10 |
-| 2 | Loop: Write new setpoints | 0x008-0x00A | 1 kHz | Update every 1 ms |
-| 3 | Loop: Read feedback | 0x014-0x016 | 1 kHz | Verify tracking |
-| 4 | Loop: Monitor errors | 0x025 | 1 kHz | Temperature warnings |
-
-**Performance Considerations:**
-- Use DARTT block write for efficient multi-register updates
-- Read feedback in separate CAN transaction if bus bandwidth allows
-- Monitor HOT_COLD_BITMASK for thermal shutdown
-
-### 7.3 Velocity Control (Automatic Mode)
-
-#### 7.3.1 Sequence: Velocity Command with Velocity Feedback
-
-**Purpose:** Command finger velocities and read back actual velocities.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Set command header | 0x007 | 0x21 | Velocity control, reply variant 2 |
-| 2 | Write velocity setpoints | 0x011-0x013 | Motor commands | Scaled: velocity/3000 × 32767 |
-| 3 | Wait for reply | N/A | Delay 10-50 ms | Depends on UART latency |
-| 4 | Read position feedback | 0x014-0x016 | N/A | Actual motor positions |
-| 5 | Read velocity feedback | 0x01A-0x01C | N/A | Actual motor velocities |
-
-**Example - Command 1500°/s on all motors:**
-
-```
-velocity_desired = 1500 (degrees/second)
-velocity_digital = (1500 / 3000) × 32767 = 16384 (0x4000)
-
-Write to registers:
-0x011 = 0x40004000  (Motors 0-1: both 1500°/s)
-0x012 = 0x40004000  (Motors 2-3: both 1500°/s)
-0x013 = 0x40004000  (Motors 4-5: both 1500°/s)
-```
-
-**Note:** Velocity feedback uses radians/sec scaling (divide by 4), not degrees/sec.
-
-### 7.4 Direct UART Pass-Through (Manual Mode)
-
-#### 7.4.1 Sequence: Send Custom UART Frame
-
-**Purpose:** Send arbitrary UART command using pass-through buffers.
-
-| Step | Action | Register/Local | Value | Notes |
-|------|--------|----------------|-------|-------|
-| 1 | Construct frame locally | Local buffer | Frame data | Build complete frame |
-| 2 | Calculate checksum locally | Local | 2's complement sum | See Appendix B |
-| 3 | Perform HDLC stuffing locally | Local | Escape 0x7E, 0x7D | See Appendix B |
-| 4 | Write stuffed bytes | 0x03F-0x051 | Stuffed frame | Pack into 32-bit words |
-| 5 | Trigger transmission | 0x052 | Byte count | Write stuffed frame length |
-| 6 | Wait for TX completion | N/A | ~1-10 ms | Depends on baud and length |
-
-**Example - Send position control frame:**
-
-**Unstuffed frame:**
-```
-[0x7E] [0x50] [0x10] [12 bytes payload] [checksum] [0x7E]
-Total: 16 bytes unstuffed
-```
-
-**After stuffing (worst case):**
-```
-May expand to 18-32 bytes depending on data content
-```
-
-#### 7.4.2 Sequence: Receive Custom UART Frame
-
-**Purpose:** Read arbitrary UART reply using pass-through buffers.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Wait for RX data | 0x03E | Poll until > 0 | NBYTES_DECODED_UART indicates valid data |
-| 2 | Read byte count | 0x03E | N | Number of unstuffed bytes |
-| 3 | Read decoded bytes | 0x02B-0x03D | Frame data | Already unstuffed by firmware |
-| 4 | Verify checksum locally | Local | N/A | Calculate and compare |
-| 5 | Parse frame locally | Local | N/A | Extract data fields |
-
-**Note:** Firmware performs unstuffing automatically. Received data in UART_RX_DECODED is already unstuffed.
-
-### 7.5 Register Read/Write (Unimplemented)
-
-#### 7.5.1 Sequence: Write Ability Hand Internal Register (Future)
-
-**Purpose:** Configure internal hand registers (e.g., PID gains, limits).
-
-**Status:** Unimplemented in current firmware.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Set command header | 0x007 | 0xDE | Write register command |
-| 2 | Set target address | 0x027 | Target register | Hand-specific address |
-| 3 | Set write value | 0x028 | Value | 32-bit value |
-| 4 | Trigger write | (mechanism TBD) | N/A | Implementation pending |
-
-#### 7.5.2 Sequence: Read Ability Hand Internal Register (Future)
-
-**Purpose:** Read internal hand configuration or status.
-
-**Status:** Unimplemented in current firmware.
-
-| Step | Action | Register | Value | Notes |
-|------|--------|----------|-------|-------|
-| 1 | Set command header | 0x007 | 0xDA | Read register command |
-| 2 | Set target address | 0x027 | Target register | Hand-specific address |
-| 3 | Trigger read | (mechanism TBD) | N/A | Implementation pending |
-| 4 | Wait for reply | 0x02A | Timeout | Default 100 ms |
-| 5 | Read reply value | 0x029 | N/A | 32-bit register value |
-
----
-
-## 8. Timing and Performance Characteristics
-
-### 8.1 Latency Analysis
-
-#### 8.1.1 Automatic Mode Round-Trip Latency
-
-**Components:**
-
-| Stage | Typical Time | Notes |
-|-------|--------------|-------|
-| CAN TX (controller → converter) | 0.1-0.5 ms | Depends on CAN bus load |
-| DARTT processing | <0.01 ms | Minimal overhead |
-| Frame construction | <0.05 ms | Firmware builds UART frame |
-| UART TX (converter → hand) | 0.3-3 ms | Depends on baud rate and frame size |
-| Hand processing | 0.5-5 ms | Hand controller latency |
-| UART RX (hand → converter) | 1.5-15 ms | Depends on baud rate and reply size |
-| Reply parsing | <0.05 ms | Firmware parses reply |
-| CAN TX (converter → controller) | 0.1-0.5 ms | Feedback data |
-
-**Total Round-Trip Time:**
-- **Best case:** 2.5 ms (high baud rate, low bus load, simple command)
-- **Typical case:** 10-20 ms (default configuration)
-- **Worst case:** 50 ms (low baud rate, high bus load, complex reply)
-
-#### 8.1.2 Pass-Through Mode Latency
-
-**Advantages:**
-- Eliminates frame construction overhead (~0.05 ms)
-- Eliminates reply parsing overhead (~0.05 ms)
-
-**Total savings:** ~0.1 ms (marginal benefit)
-
-**Recommendation:** Use automatic mode unless protocol flexibility is required.
-
-### 8.2 Throughput Analysis
-
-#### 8.2.1 CAN Bus Utilization
-
-**DARTT Block Write (6 motors, 3 words):**
-- Data payload: 12 bytes (3 words × 4 bytes)
-- CAN overhead: ~8 bytes (arbitration, CRC, etc.)
-- Total: ~20 bytes per CAN frame
-- At 800 kbit/s: ~0.2 ms/frame
-
-**Maximum update rate (CAN-limited):** ~5000 Hz (theoretical)
-
-**Practical limit:** 1000-2000 Hz (allows time for feedback reads)
-
-#### 8.2.2 UART Bus Utilization
-
-**Position Control Frame (unstuffed):**
-- Frame structure: Address (1) + Header (1) + Payload (12) + Checksum (1) = 15 bytes
-- Frame delimiters: 2 bytes (start/end 0x7E)
-- Total unstuffed: 17 bytes
-- Worst-case stuffed: 34 bytes (all payload bytes escaped)
-
-**At 460800 baud:**
-- Unstuffed: 17 bytes × 10 bits/byte ÷ 460800 = 0.37 ms
-- Stuffed (typical ~20% expansion): ~0.44 ms
-
-**Position Control Reply (variant 1, unstuffed):**
-- Address (1) + Header (1) + Position (12) + Current (12) + Status (2) + Checksum (1) = 29 bytes
-- With delimiters: 31 bytes unstuffed
-- Typical stuffed: ~37 bytes
-
-**At 460800 baud:**
-- ~0.80 ms per reply
-
-**Round-trip UART time:** 0.44 ms + 0.80 ms = 1.24 ms
-
-**Maximum UART update rate:** ~800 Hz (theoretical)
-
-**Practical limit:** 100-500 Hz (allows hand processing time)
-
-### 8.3 Maximum Control Loop Rates
-
-| Control Mode | Limiting Factor | Max Theoretical | Recommended Practical |
-|--------------|-----------------|-----------------|------------------------|
-| Position (automatic) | UART round-trip | 800 Hz | 100-200 Hz |
-| Velocity (automatic) | UART round-trip | 800 Hz | 100-200 Hz |
-| Torque (automatic) | UART round-trip | 800 Hz | 100-200 Hz |
-| Pass-through | UART round-trip | 800 Hz | 100-500 Hz |
-
-**Note:** Ability Hand internal control loop runs at 1 kHz. Update rates above 200 Hz provide diminishing returns.
-
-### 8.4 Timeout Recommendations
-
-| Operation | Recommended Timeout | Register |
-|-----------|---------------------|----------|
-| UART reply (default) | 100 ms | ABH_READ_TIMEOUT (0x02A) |
-| UART reply (fast) | 50 ms | ABH_READ_TIMEOUT (0x02A) |
-| UART reply (noisy line) | 200 ms | ABH_READ_TIMEOUT (0x02A) |
-| Flash write | 500 ms | N/A (poll 0x057) |
-| CAN frame ACK | 10 ms | CAN controller timeout |
-
-### 8.5 Power Consumption
-
-| Mode | Typical Current | Notes |
-|------|-----------------|-------|
-| Active (idle) | 50 mA @ 3.3V | No UART/CAN traffic |
-| Active (1 kHz control) | 60 mA @ 3.3V | Continuous operation |
-| Flash write | 80 mA @ 3.3V | Peak during write |
-
-**Total Power:** ~200-265 mW typical
-
----
-
-## 9. Non-Volatile Configuration Management
-
-### 9.1 Flash Memory Organization
-
-The converter uses STM32G4 internal flash for non-volatile storage.
-
-**Flash Parameters:**
-- **Page Used:** Page 63 (last page of flash)
-- **Page Size:** 2 KB (2048 bytes)
-- **Write Granularity:** 64-bit (8 bytes)
-- **Erase Granularity:** Full page (2048 bytes)
-
-**Storage Layout (Page 63):**
-```
-Offset 0x000: fds_params_t structure (24 bytes, padded to 32 bytes)
-Offset 0x020: Reserved for future use
-...
-Offset 0x7FF: End of page
-```
 
 ### 9.2 Configuration Persistence Mechanism
 
@@ -1071,7 +752,7 @@ Offset 0x7FF: End of page
 
 ### 9.4 Default Configuration
 
-If flash contains invalid or corrupted data, firmware uses these defaults:
+The firmware uses these defaults:
 
 | Parameter | Default Value | Register |
 |-----------|---------------|----------|
@@ -1082,22 +763,19 @@ If flash contains invalid or corrupted data, firmware uses these defaults:
 | FDCAN_NTSEG2 | 34 | 0x004 |
 | UNUSED_ZEROPAD | 0 | 0x005 |
 
-**CAN Bit Rate:** 500 kbit/s (calculated from defaults)
+**CAN Bit Rate:** 500 kbit/s (derived from NBRP, NTSEG1, NTSEG2)
 
-### 9.5 Configuration Validation
+### 9.5 Configuration Validation Warning
 
-The firmware performs basic validation on boot:
+**WARNING:** The firmware does not perform validation of configuration parameters on boot or during flash writes. Invalid configuration parameters, especially FDCAN timing parameters (NBRP, NTSEG1, NTSEG2), will cause the device to fail CAN bus initialization and become unresponsive to CAN communication.
 
-**Validation Checks:**
-1. MODULE_NUMBER in range [0x01, 0x7FE]
-2. UART_BAUD_RATE in range [1200, 1000000]
-3. FDCAN_NBRP in range [1, 512]
-4. FDCAN_NTSEG1 in range [2, 256]
-5. FDCAN_NTSEG2 in range [2, 128]
+**Consequences of Invalid FDCAN Parameters:**
+- Device will become inoperable over CAN
+- Recovery requires either:
+  1. Restoring valid parameters via SWD programmer, OR
+  2. Full chip erase and firmware re-flash via SWD programmer
 
-**Failure Action:** If any check fails, use default configuration.
-
-**Note:** Validation is basic. Invalid but in-range values (e.g., NBRP=500) will not be caught.
+**Recommendation:** Implement controller-side validation of the full flash block any time a change is made before setting the update flag.
 
 ---
 
@@ -1112,7 +790,6 @@ The firmware performs basic validation on boot:
 | Clock Frequency | 170 MHz (max) |
 | Flash | 128 KB |
 | RAM | 32 KB |
-| Package | LQFP64 (typical) |
 
 ### 10.2 CAN Interface
 
