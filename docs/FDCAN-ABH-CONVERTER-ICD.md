@@ -3,7 +3,7 @@
 **Document Number:** FDCAN-ABH-ICD-001
 **Revision:** 1.0
 **Date:** November 17, 2025
-**Organization:** Psyonic Inc.
+**Organization:** PSYONIC Inc.
 
 ---
 
@@ -72,10 +72,10 @@ This document is intended for:
 
 ### 2.1 Applicable Documents
 
-| Document ID | Title | Version |
-|-------------|-------|---------|
-| ABH-ICD-001 | Ability Hand Interface Control Document | Rev 3.0 |
-| DARTT-SPEC | DARTT Protocol Specification | Latest |
+| Document | Location |
+|----------|----------|
+| Ability Hand Interface Control Document | [docs/ABILITY-HAND-ICD.pdf](./ABILITY-HAND-ICD.pdf) |
+| DARTT Protocol Specification | [external/dartt-protocol/docs/PROTOCOL.md](../external/dartt-protocol/docs/PROTOCOL.md) |
 
 ---
 
@@ -85,8 +85,7 @@ This document is intended for:
 
 | Interface | Direction | Protocol | Purpose |
 |-----------|-----------|----------|---------|
-| CAN RX | Input | DARTT | Receive commands and configuration from controller |
-| CAN TX | Output | DARTT | Send feedback and status to controller |
+| CANH/CANL | Input/Output | DARTT | Send and receive data to control the Ability Hand and configure the interface controller |
 | UART TX | Output | Ability Hand API | Send motor commands to prosthetic |
 | UART RX | Input | Ability Hand API | Receive feedback from prosthetic |
 | Flash | Storage | N/A | Persist configuration across power cycles |
@@ -129,6 +128,8 @@ The converter uses a configurable CAN arbitration ID scheme:
 - Complementary ID used for all DARTT messages
 - Module number must be unique on the CAN bus
 - Valid range: 0x01 - 0x7FE
+
+If the MODULE_NUMBER is re-assigned, the corresponding complementary CAN ID will be recalculated on initialization/reset, and that ID will be used for all DARTT messaging with the interface device.
 
 #### 4.1.3 DARTT Protocol
 
