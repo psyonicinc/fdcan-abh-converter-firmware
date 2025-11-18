@@ -287,9 +287,10 @@ The FDCAN-ABH Converter exposes all configurable parameters and operational data
 | 0x031 | ABH Read Timeout | 1 | Reply timeout configuration |
 | 0x032 | UART RX Decoded Buffer | 19 | HDLC-decoded receive buffer (76 bytes) |
 | 0x045 | UART RX Byte Count | 1 | Valid bytes in RX buffer  |
-| 0x046 | UART TX Buffer | 19 | Raw transmit buffer (76 bytes, requires HDLC stuffing) |
+| 0x046 | UART TX Buffer | 19 | Raw transmit buffer. Cleared on interface device once tranmission begins |
 | 0x059 | UART TX Byte Count | 1 | TX trigger - write byte count to initiate transmission |
-| 0x05A | System Information | 5 | Firmware version and control flags |
+| 0x05A | Git Hash | 4 | Zero-terminated short git hash (max 15 characters, null-terminated) - for version tracking |
+| 0x5E | Update nonvolatile storage | 1 | Flag for updating non-volatile storage - cleared upon completion of update operation |
 
 **Total Memory Map Size:** 95 words (380 bytes)
 
@@ -306,7 +307,7 @@ These registers define persistent configuration parameters stored in flash memor
 | 0x002 | FDCAN_NBRP | uint32_t | R/W-NV | 2 | FDCAN Nominal Bit Rate Prescaler. Range: 1-512 |
 | 0x003 | FDCAN_NTSEG1 | uint32_t | R/W-NV | 135 | FDCAN Nominal Time Segment 1. Range: 2-256 |
 | 0x004 | FDCAN_NTSEG2 | uint32_t | R/W-NV | 34 | FDCAN Nominal Time Segment 2. Range: 2-128 |
-| 0x005 | UNUSED_ZEROPAD | uint32_t | RO | 0 | Alignment padding for 64-bit flash alignment requirement |
+| 0x005 | UNUSED_ZEROPAD | uint32_t | RO | 0 | Unused nonvolatile storage word. |
 
 **CAN Bit Rate Calculation:**
 
@@ -322,8 +323,6 @@ Nominal_Bit_Rate = 170_MHz / (NBRP × (1 + NTSEG1 + NTSEG2))
 **Configuration Notes:**
 - Changes take effect after power cycle or system reset
 - Invalid CAN timing parameters may cause bus communication failure
-- Sample point = (1 + NTSEG1) / (1 + NTSEG1 + NTSEG2) × 100%
-- Default sample point: 80%
 - Peripheral clock (PCLK): 170 MHz (STM32G4 maximum)
 
 ---
@@ -381,11 +380,6 @@ This block provides high-level structured control of the Ability Hand. Writing t
 ```
 position_digital = (angle_degrees / 150.0) × 32767
 ```
-
-**Valid Range:**
-- 0° = 0
-- 75° = 16384
-- 150° = 32767
 
 **Motor Mapping:**
 - Motor 0: Thumb rotation
