@@ -381,14 +381,6 @@ This block provides high-level structured control of the Ability Hand. Writing t
 position_digital = (angle_degrees / 150.0) × 32767
 ```
 
-**Motor Mapping:**
-- Motor 0: Thumb rotation
-- Motor 1: Thumb flexion
-- Motor 2: Index finger
-- Motor 3: Middle finger
-- Motor 4: Ring finger
-- Motor 5: Pinky finger
-
 #### 5.3.4 Motor Setpoints - Voltage (0x00B-0x00D)
 
 | Word Index | Register Name | Type | Access | Default | Description |
