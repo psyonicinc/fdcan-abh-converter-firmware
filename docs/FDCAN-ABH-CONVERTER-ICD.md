@@ -23,11 +23,9 @@
 4. [Interface Characteristics](#4-interface-characteristics)
 5. [Memory Map and Register Definitions](#5-memory-map-and-register-definitions)
 6. [Operational Modes](#6-operational-modes)
-7. [Command Sequences](#7-command-sequences)
-8. [Timing and Performance Characteristics](#8-timing-and-performance-characteristics)
-9. [Non-Volatile Configuration Management](#9-non-volatile-configuration-management)
-10. [Physical and Electrical Characteristics](#10-physical-and-electrical-characteristics)
-11. [Appendices](#11-appendices)
+7. [Non-Volatile Configuration Management](#7-non-volatile-configuration-management)
+8. [Physical and Electrical Characteristics](#8-physical-and-electrical-characteristics)
+9. [Appendices](#9-appendices)
 
 ---
 
@@ -695,11 +693,14 @@ The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007
 **Mode Transition Procedure:**
 1. To enter pass-through mode: Write 0x00 to ABH_COMMAND_HEADER (0x007)
 2. To enter automatic mode: Write desired command header to ABH_COMMAND_HEADER (0x007)
+
 ---
 
-### 9.2 Configuration Persistence Mechanism
+## 7. Non-Volatile Configuration Management
 
-#### 9.2.1 Write Sequence (Internal Firmware)
+### 7.1 Configuration Persistence Mechanism
+
+#### 7.1.1 Write Sequence (Internal Firmware)
 
 1. Controller modifies registers in Block 1 (0x000-0x005)
 2. Controller writes 1 to UPDATE_NONVOLATILE_STORAGE (0x057)
@@ -711,7 +712,7 @@ The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007
 
 **Duration:** 100-200 ms (blocking operation)
 
-#### 9.2.2 Read Sequence (Boot-Time)
+#### 7.1.2 Read Sequence (Boot-Time)
 
 1. Firmware reads Page 63 into RAM (fds_params_t structure)
 2. Firmware validates configuration (basic sanity checks)
@@ -720,9 +721,9 @@ The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007
 
 **Duration:** <1 ms (non-blocking during normal operation)
 
-### 9.3 Flash Write Limitations
+### 7.2 Flash Write Limitations
 
-#### 9.3.1 Endurance
+#### 7.2.1 Endurance
 
 **STM32G4 Flash Endurance:** 10,000 erase/write cycles (minimum, per datasheet)
 
@@ -736,12 +737,12 @@ The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007
 - Write only when user explicitly changes settings
 - Avoid automated runtime writes
 
-#### 9.3.2 Power Loss During Write
+#### 7.2.2 Power Loss During Write
 
-**Risk:** If power is lost during flash write (Step 4-5 of Section 9.2.1), flash page may be corrupted.
+**Risk:** If power is lost during flash write (Step 4-5 of Section 7.1.1), flash page may be corrupted.
 
 **Mitigation:**
-1. Firmware validates configuration on boot (Section 9.2.2 Step 2)
+1. Firmware validates configuration on boot (Section 7.1.2 Step 2)
 2. If validation fails, firmware uses safe defaults
 3. Controller should avoid triggering writes during critical operations
 
@@ -750,7 +751,7 @@ The operational mode is controlled by the **ABH_COMMAND_HEADER** register (0x007
 - Avoid writes during active prosthetic use
 - Implement timeout monitoring (poll 0x057 for completion)
 
-### 9.4 Default Configuration
+### 7.3 Default Configuration
 
 The firmware uses these defaults:
 
@@ -765,7 +766,7 @@ The firmware uses these defaults:
 
 **CAN Bit Rate:** 500 kbit/s (derived from NBRP, NTSEG1, NTSEG2)
 
-### 9.5 Configuration Validation Warning
+### 7.4 Configuration Validation Warning
 
 **WARNING:** The firmware does not perform validation of configuration parameters on boot or during flash writes. Invalid configuration parameters, especially FDCAN timing parameters (NBRP, NTSEG1, NTSEG2), will cause the device to fail CAN bus initialization and become unresponsive to CAN communication.
 
@@ -779,9 +780,9 @@ The firmware uses these defaults:
 
 ---
 
-## 10. Physical and Electrical Characteristics
+## 8. Physical and Electrical Characteristics
 
-### 10.1 Microcontroller Platform
+### 8.1 Microcontroller Platform
 
 | Parameter | Value |
 |-----------|-------|
@@ -791,7 +792,7 @@ The firmware uses these defaults:
 | Flash | 128 KB |
 | RAM | 32 KB |
 
-### 10.2 CAN Interface
+### 8.2 CAN Interface
 
 **Integrated Components:**
 - TLE9250XSJXUMA1 5V CAN transceiver (on-board)
@@ -803,14 +804,14 @@ The firmware uses these defaults:
 - CANH and CANL differential pair to CAN bus
 - Device acts as bus termination node (place at bus end or disable external terminations)
 
-### 10.4 Power Supply
+### 8.3 Power Supply
 
 | Parameter | Min | Typ | Max | Unit | Notes |
 |-----------|-----|-----|-----|------|-------|
 | Supply Voltage (VDD) | 2.0 | 8.4 | 12 | V | MCU supply |
 ---
 
-## 11. Appendices
+## 9. Appendices
 
 ---
 
