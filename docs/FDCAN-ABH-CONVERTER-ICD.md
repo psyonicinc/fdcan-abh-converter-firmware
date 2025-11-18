@@ -174,33 +174,6 @@ This device uses DARTT Type 2 messages (TYPE_ADDR_CRC_MESSAGE), which rely on CA
 
 - **Data Block**: N bytes of requested data (raw payload)
 
-**Index Encoding:**
-```
-Word Index 0 → Byte offset 0   → DARTT Index field = 0x0000
-Word Index 1 → Byte offset 4   → DARTT Index field = 0x0001
-Word Index 2 → Byte offset 8   → DARTT Index field = 0x0002
-...
-Word Index N → Byte offset 4N  → DARTT Index field = 0x000N
-
-For reads:  Index field = 0x8000 | word_index  (bit 15 = 1)
-For writes: Index field = 0x0000 | word_index  (bit 15 = 0)
-```
-
-**Example - Write 8 bytes to word index 0x008:**
-```
-CAN ID: 0x7AF
-Payload: [0x08, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]
-```
-
-**Example - Read 6 bytes from word index 0x014:**
-```
-CAN ID: 0x7AF
-Payload: [0x14, 0x80, 0x06, 0x00]
-Reply:
-CAN ID: 0x7AF
-Payload: [12 bytes of data from word 0x014-0x016]
-```
-
 ### 4.2 UART Interface
 
 #### 4.2.1 Physical Layer
@@ -224,7 +197,7 @@ Payload: [12 bytes of data from word 0x014-0x016]
 | 921600 | 921600 | Maximum reliable |
 | 1000000 | 1000000 | Maximum |
 
-**Note:** Baud rates above 460800 may require careful cable selection and short cable runs (<2m).
+**Note:** Baud rates other than 460800 require modification to the baud rate setting on the Ability Hand. Additionally, when using baud rates over 460800, it is recommended to disable BLE, as bluetooth activity at high baudrates may result in dropped frames.
 
 #### 4.2.3 HDLC Framing
 
@@ -513,30 +486,25 @@ This block provides low-level direct access to UART transmission and reception b
 
 | Word Index | Register Name | Type | Access | Default | Description |
 |------------|---------------|------|--------|---------|-------------|
-| 0x02A | ABH_READ_TIMEOUT | uint32_t | R/W | 100 | Reply timeout in milliseconds. Used in automatic mode |
+| 0x02A | ABH_READ_TIMEOUT | uint32_t | R/W | 5 | Reply timeout in milliseconds. Used in automatic mode |
 
 **Usage:** Defines how long the firmware waits for a UART reply before marking the transaction as timed out.
 
-**Recommended Values:**
-- 50 ms: Fast polling applications
-- 100 ms: Default (recommended)
-- 200 ms: Noisy or long cable runs
-
 #### 5.4.2 UART RX Buffer (0x02B-0x03E)
 
-| Word Index | Register Name | Type | Access | Size | Description |
-|------------|---------------|------|--------|------|-------------|
-| 0x02B-0x03D | UART_RX_DECODED[0-75] | uint8_t[76] | RO | 19 words (76 bytes) | HDLC-decoded receive buffer. Contains unstuffed UART data |
-| 0x03E | NBYTES_DECODED_UART | uint32_t | RO | 1 word | Number of valid bytes in UART_RX_DECODED buffer |
+| Word Index | Register Name | Type | Access | Default | Size | Description |
+|------------|---------------|------|--------|----|--|--------|
+| 0x02B-0x03D | UART_RX_DECODED[0-75] | uint8_t[76] | RO | 0  | 19 words (76 bytes) | HDLC-decoded receive buffer. Contains unstuffed UART data |
+| 0x03E | NBYTES_DECODED_UART | uint32_t | RO | 0 | 1 word |Number of valid bytes in UART_RX_DECODED buffer |
 
 **Buffer Layout:** 76-byte buffer. Firmware performs HDLC unstuffing automatically, so this buffer always contains an unstuffed payload when NBYTES_DECODED_UART is nonzero.
 
 #### 5.4.3 UART TX Buffer (0x03F-0x052)
 
-| Word Index | Register Name | Type | Access | Size | Description |
-|------------|---------------|------|--------|------|-------------|
-| 0x03F-0x051 | UART_TX_MEM[0-75] | uint8_t[76] | R/W | 19 words | Raw transmit buffer. Controller must perform HDLC stuffing |
-| 0x052 | NBYTES_WRITE_UART | uint32_t | WO | 1 word | TX trigger register. Write byte count to initiate transmission |
+| Word Index | Register Name | Type | Access | Default | Size | Description |
+|------------|---------------|------|--------|---|---|-------------|
+| 0x03F-0x051 | UART_TX_MEM[0-75] | uint8_t[76] | R/W | 0 | 19 words | Raw transmit buffer. Controller must perform HDLC stuffing |
+| 0x052 | NBYTES_WRITE_UART | uint32_t | WO | 0 | 1 word | TX trigger register. Write byte count to initiate transmission |
 
 **Buffer Layout:** 76-byte buffer packed into 19 32-bit words.
 
