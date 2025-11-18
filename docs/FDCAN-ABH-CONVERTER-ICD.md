@@ -11,7 +11,7 @@
 
 | Version | Date | Author | Description |
 |---------|------|--------|-------------|
-| 1.0 | 2025-11-17 | Auto-generated | Initial release |
+| 1.0 | 2025-11-17 | Jesse Cornman | Initial release |
 
 ---
 
@@ -191,14 +191,12 @@ For writes: Index field = 0x0000 | word_index  (bit 15 = 0)
 ```
 CAN ID: 0x7AF
 Payload: [0x08, 0x00, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF]
-         |Index=0x0008| |------ 6 bytes of data --------|
 ```
 
 **Example - Read 6 bytes from word index 0x014:**
 ```
 CAN ID: 0x7AF
 Payload: [0x14, 0x80, 0x06, 0x00]
-         |Index=0x8014| |Num=6 |
 Reply:
 CAN ID: 0x7AF
 Payload: [12 bytes of data from word 0x014-0x016]
@@ -529,22 +527,10 @@ This block provides low-level direct access to UART transmission and reception b
 
 | Word Index | Register Name | Type | Access | Size | Description |
 |------------|---------------|------|--------|------|-------------|
-| 0x02B-0x03D | UART_RX_DECODED[0-75] | uint8_t[76] | RO | 19 words | HDLC-decoded receive buffer. Contains unstuffed UART data |
-| 0x03E | NBYTES_DECODED_UART | uint16_t | RO | Lower 16 bits | Number of valid bytes in UART_RX_DECODED buffer |
+| 0x02B-0x03D | UART_RX_DECODED[0-75] | uint8_t[76] | RO | 19 words (76 bytes) | HDLC-decoded receive buffer. Contains unstuffed UART data |
+| 0x03E | NBYTES_DECODED_UART | uint32_t | RO | 1 word | Number of valid bytes in UART_RX_DECODED buffer |
 
-**Buffer Layout:** 76-byte buffer packed into 19 32-bit words. Firmware performs HDLC unstuffing automatically.
-
-**Access Pattern:**
-1. Read NBYTES_DECODED_UART to determine valid data length
-2. Read appropriate words from UART_RX_DECODED
-3. Extract bytes from packed 32-bit words (little-endian)
-
-**Example:** To read byte 5:
-```
-word_index = 0x02B + (5 / 4) = 0x02C
-byte_offset = 5 % 4 = 1
-byte_5 = (UART_RX_DECODED[word_index] >> (8 * byte_offset)) & 0xFF
-```
+**Buffer Layout:** 76-byte buffer. Firmware performs HDLC unstuffing automatically, so this buffer always contains an unstuffed payload when NBYTES_DECODED_UART is nonzero.
 
 #### 5.4.3 UART TX Buffer (0x03F-0x052)
 
@@ -562,13 +548,6 @@ byte_5 = (UART_RX_DECODED[word_index] >> (8 * byte_offset)) & 0xFF
 4. Write byte count to NBYTES_WRITE_UART (0x052)
 5. Transmission begins immediately
 
-**CRITICAL:** Controller MUST perform HDLC stuffing before transmission. Failure to stuff will result in framing errors.
-
-**Maximum Frame Size:**
-- Unstuffed: 72 bytes (typical Ability Hand frame)
-- Worst-case stuffed: 144 bytes (all bytes escaped)
-- Buffer limit: 76 bytes (limits maximum stuffed frame size)
-
 ---
 
 ### 5.6 Block 5: System Information (0x053-0x057)
@@ -579,11 +558,11 @@ This block provides read-only system information and control flags for firmware 
 
 | Word Index | Register Name | Type | Access | Size | Description |
 |------------|---------------|------|--------|------|-------------|
-| 0x053-0x056 | GIT_HASH_BUFFER[0-15] | uint8_t[16] | RO | 4 words | Git commit hash identifying firmware version (ASCII hex) |
+| 0x053-0x056 | GIT_HASH_BUFFER[0-15] | uint8_t[16] | RO | 4 words | Git commit hash identifying firmware version (ASCII hex, null-terminated, variable length) |
 
-**Format:** 16-character ASCII string representing the git commit SHA (first 16 hex characters).
+**Format:** Null terminated ASCII string representing the --short git commit SHA for the [interface firmware repository](https://github.com/psyonicinc/fdcan-abh-converter-firmware).
 
-**Example:** "a3f2c1b8e4d9f7a2" represents git commit hash starting with a3f2c1b8...
+**Example:** "38c0d64" represents git commit hash starting with 38c0d64...
 
 **Usage:** Read to verify firmware version during system initialization or diagnostics.
 
@@ -663,30 +642,14 @@ In this mode, the converter handles all low-level protocol details, including fr
 - **Reply Parsing:** Automatic
 - **Use Case:** Standard motor control applications
 
-#### 6.1.2 Control Flow
+#### 6.1.2 Advantages
 
-```
-Controller                     Converter                      Ability Hand
-    |                              |                              |
-    |--DARTT Write Q_DESIRED------>|                              |
-    |  (Position setpoints)        |                              |
-    |                              |--UART TX (stuffed frame)---->|
-    |                              |                              |
-    |                              |<--UART RX (stuffed reply)----|
-    |                              | [Automatic unstuffing]       |
-    |                              | [Parse reply data]           |
-    |<--DARTT Read Q_ACTUAL--------|                              |
-    |  (Position feedback)         |                              |
-```
-
-#### 6.1.3 Advantages
-
+- **Minimizes latency**. Most suitable for high-frequency control loops
 - Simple controller implementation
 - Guaranteed protocol correctness
 - Automatic error handling
-- Suitable for high-frequency control loops (1-10 kHz)
 
-#### 6.1.4 Limitations
+#### 6.1.3 Limitations
 
 - Limited to standard Ability Hand command set
 - Cannot implement custom protocols
@@ -706,31 +669,14 @@ In this mode, the controller has direct access to UART buffers and is responsibl
 - **Reply Parsing:** Manual (controller responsibility)
 - **Use Case:** Custom protocols, debugging, advanced features
 
-#### 6.2.2 Control Flow
-
-```
-Controller                     Converter                      Ability Hand
-    |                              |                              |
-    |  [Construct frame locally]   |                              |
-    |  [Perform HDLC stuffing]     |                              |
-    |--Write UART_TX_MEM---------->|                              |
-    |--Write NBYTES_WRITE_UART---->|                              |
-    |                              |--UART TX (stuffed frame)---->|
-    |                              |                              |
-    |                              |<--UART RX (stuffed reply)----|
-    |                              | [Automatic unstuffing]       |
-    |<--Read UART_RX_DECODED-------|                              |
-    |  [Parse reply locally]       |                              |
-```
-
-#### 6.2.3 Advantages
+#### 6.2.2 Advantages
 
 - Full protocol flexibility
 - Access to custom Ability Hand features
 - Debugging and diagnostic capabilities
 - Can implement non-standard command sequences
 
-#### 6.2.4 Limitations
+#### 6.2.3 Limitations
 
 - Controller must implement HDLC stuffing
 - Controller must implement checksum calculation
