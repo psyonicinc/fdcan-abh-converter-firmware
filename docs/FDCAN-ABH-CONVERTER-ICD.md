@@ -793,81 +793,21 @@ The firmware uses these defaults:
 
 ### 10.2 CAN Interface
 
-| Parameter | Min | Typ | Max | Unit | Notes |
-|-----------|-----|-----|-----|------|-------|
-| Transceiver Supply Voltage | 4.5 | 5.0 | 5.5 | V | Integrated 5V CAN transceiver |
-| Differential Voltage (CANH-CANL) Dominant | 1.5 | 2.0 | 3.0 | V | Bus dominant state |
-| Differential Voltage (CANH-CANL) Recessive | -0.5 | 0 | 0.05 | V | Bus recessive state |
-| Common Mode Voltage | 2.0 | 2.5 | 3.0 | V | Both CANH and CANL |
-| Bit Rate (nominal) | 125 | 500 | 1000 | kbit/s | Default: 500 kbit/s, classic CAN compliant |
-| Bus Load (max recommended) | - | 60 | 80 | % | For reliable operation |
-| Termination Resistance | - | 120 | - | Ω | Integrated on-board |
-
 **Integrated Components:**
-- 5V CAN transceiver (on-board)
+- TLE9250XSJXUMA1 5V CAN transceiver (on-board)
 - 120Ω termination resistor (on-board)
+
+**Bit Rate:** 125 kbit/s to 1000 kbit/s (default: 500 kbit/s, classic CAN compliant)
 
 **External Connection:**
 - CANH and CANL differential pair to CAN bus
 - Device acts as bus termination node (place at bus end or disable external terminations)
 
-### 10.3 UART Interface
-
-| Parameter | Min | Typ | Max | Unit | Notes |
-|-----------|-----|-----|-----|------|-------|
-| Logic High (TX) | 2.0 | 3.3 | 3.6 | V | MCU UART output |
-| Logic Low (TX) | 0 | 0 | 0.4 | V | MCU UART output |
-| Input Threshold (RX) | 0.8 | - | 2.0 | V | MCU UART input |
-| Baud Rate | 9600 | 460800 | 1000000 | bps | See Section 4.2.2 |
-| Cable Length (460800 bps) | - | 1 | 5 | m | Depends on cable quality |
-| Cable Length (115200 bps) | - | 10 | 30 | m | Lower baud = longer cable |
-
-**External Components Required:**
-- RS-232 level shifter (e.g., MAX3232) for RS-232 signals
-- RS-485 transceiver (e.g., MAX485) for differential signals
-- Termination resistors (for RS-485, 120Ω typical)
-
-**Note:** Ability Hand uses 3.3V logic UART. Direct connection possible if converter outputs 3.3V UART.
-
 ### 10.4 Power Supply
 
 | Parameter | Min | Typ | Max | Unit | Notes |
 |-----------|-----|-----|-----|------|-------|
-| Supply Voltage (VDD) | 3.0 | 3.3 | 3.6 | V | MCU supply |
-| Supply Current (idle) | 40 | 50 | 70 | mA | No active communication |
-| Supply Current (active) | 50 | 60 | 80 | mA | 1 kHz control loop |
-| Supply Current (flash write) | 70 | 80 | 100 | mA | Peak during write |
-| Power Consumption | 150 | 200 | 300 | mW | Total system |
-
-**Decoupling Requirements:**
-- 100 nF ceramic capacitor on each VDD pin (close to MCU)
-- 10 μF bulk capacitor on main supply rail
-- Low-ESR capacitors recommended for noise immunity
-
-### 10.5 Environmental
-
-| Parameter | Min | Typ | Max | Unit | Notes |
-|-----------|-----|-----|-----|------|-------|
-| Operating Temperature | -10 | 25 | 70 | °C | Typical ambient |
-| Storage Temperature | -40 | - | 85 | °C | Non-operating |
-| Humidity (non-condensing) | 10 | - | 90 | % RH | Operating condition |
-
-**Note:** Extended temperature range (-40 to 85°C) possible with industrial-grade MCU variant.
-
-### 10.6 Mechanical
-
-Mechanical dimensions depend on carrier board design. Typical implementations:
-
-| Board Form Factor | Dimensions (mm) | Notes |
-|-------------------|-----------------|-------|
-| Custom PCB | 40 × 30 | Typical compact design |
-| Development Board | 50 × 70 | Includes debugging headers |
-
-**Connector Recommendations:**
-- **CAN:** Screw terminal or DB9
-- **UART:** JST-XH or screw terminal
-- **Power:** JST-XH or barrel jack
-
+| Supply Voltage (VDD) | 2.0 | 8.4 | 12 | V | MCU supply |
 ---
 
 ## 11. Appendices
@@ -878,7 +818,7 @@ Mechanical dimensions depend on carrier board design. Typical implementations:
 
 | Revision | Date | Author | Description |
 |----------|------|--------|-------------|
-| 1.0 | 2025-11-17 | Auto-generated | Initial release |
+| 1.0 | 2025-11-17 | Jesse Cornman | Initial release |
 
 ---
 
@@ -908,7 +848,7 @@ Mechanical dimensions depend on carrier board design. Typical implementations:
 
 | Role | Name | Signature | Date |
 |------|------|-----------|------|
-| Author | Auto-generated | | 2025-11-17 |
+| Author | Jesse Cornman | | 2025-11-17 |
 | Technical Reviewer | | | |
 | Project Manager | | | |
 
