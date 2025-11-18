@@ -474,7 +474,7 @@ velocity_rad_per_sec = velocity_digital / 4
 
 | Word Index | Register Name | Type | Access | Default | Description |
 |------------|---------------|------|--------|---------|-------------|
-| 0x01D | FSR_RAW_0_1 | uint16_t[2] | RO | 0 | FSR sensors 0-1 (12-bit packed ADC values) |
+| 0x01D | FSR_RAW_0_1 | uint16_t[2] | RO | 0 | FSR sensors 0-1 (unpacked values) |
 | 0x01E | FSR_RAW_2_3 | uint16_t[2] | RO | 0 | FSR sensors 2-3 |
 | 0x01F | FSR_RAW_4_5 | uint16_t[2] | RO | 0 | FSR sensors 4-5 |
 | 0x020 | FSR_RAW_6_7 | uint16_t[2] | RO | 0 | FSR sensors 6-7 |
@@ -485,16 +485,10 @@ velocity_rad_per_sec = velocity_digital / 4
 
 **FSR Layout:** 5 fingers × 6 FSRs/finger = 30 FSR sensors total
 
-**Finger Mapping:**
-- FSR 0-5: Thumb
-- FSR 6-11: Index
-- FSR 12-17: Middle
-- FSR 18-23: Ring
-- FSR 24-29: Pinky
 
 **Data Format:** 12-bit ADC values (0-4095). Higher values indicate greater force.
 
-**Availability:** Populated when reply variant 3 (TX3) is selected via command header.
+*Availability:** Populated when reply variant 3 (TX3) is selected via command header.
 
 #### 5.3.11 Status and Reply Information (0x025-0x026)
 
@@ -514,40 +508,11 @@ velocity_rad_per_sec = velocity_digital / 4
 
 ---
 
-### 5.4 Block 3: Register Access Interface (0x027-0x029) - UNIMPLEMENTED
-
-This block provides direct register-level access to internal Ability Hand configuration registers.
-
-**IMPORTANT: This functionality is currently unimplemented in the firmware.** Reading or writing these registers will have no effect.
-
-| Word Index | Register Name | Type | Access | Default | Description |
-|------------|---------------|------|--------|---------|-------------|
-| 0x027 | REGISTER_TARGET | uint32_t | R/W | 0 | Target register address for read/write operations |
-| 0x028 | REGISTER_WRITE_VAL | uint32_t | R/W | 0 | Value to write to target register |
-| 0x029 | REGISTER_READ_REPLY_VAL | uint32_t | RO | 0 | Value read back from target register |
-
-**Intended Usage Pattern (when implemented):**
-
-**Register Write:**
-1. Write target address to REGISTER_TARGET (0x027)
-2. Write value to REGISTER_WRITE_VAL (0x028)
-3. Set ABH_COMMAND_HEADER (0x007) to 0xDE
-4. Trigger UART transmission
-
-**Register Read:**
-1. Write target address to REGISTER_TARGET (0x027)
-2. Set ABH_COMMAND_HEADER (0x007) to 0xDA
-3. Trigger UART transmission
-4. Wait for ABH_READ_TIMEOUT (0x02A)
-5. Read value from REGISTER_READ_REPLY_VAL (0x029)
-
----
-
-### 5.5 Block 4: UART Direct Buffers (0x02A-0x051)
+### 5.4 Block 4: UART Direct Buffers (0x02A-0x051)
 
 This block provides low-level direct access to UART transmission and reception buffers for pass-through mode. The controller is responsible for HDLC byte stuffing on TX data. The firmware automatically performs HDLC unstuffing on RX data.
 
-#### 5.5.1 Timeout Configuration (0x02A)
+#### 5.4.1 Timeout Configuration (0x02A)
 
 | Word Index | Register Name | Type | Access | Default | Description |
 |------------|---------------|------|--------|---------|-------------|
@@ -560,7 +525,7 @@ This block provides low-level direct access to UART transmission and reception b
 - 100 ms: Default (recommended)
 - 200 ms: Noisy or long cable runs
 
-#### 5.5.2 UART RX Buffer (0x02B-0x03E)
+#### 5.4.2 UART RX Buffer (0x02B-0x03E)
 
 | Word Index | Register Name | Type | Access | Size | Description |
 |------------|---------------|------|--------|------|-------------|
@@ -581,7 +546,7 @@ byte_offset = 5 % 4 = 1
 byte_5 = (UART_RX_DECODED[word_index] >> (8 * byte_offset)) & 0xFF
 ```
 
-#### 5.5.3 UART TX Buffer (0x03F-0x052)
+#### 5.4.3 UART TX Buffer (0x03F-0x052)
 
 | Word Index | Register Name | Type | Access | Size | Description |
 |------------|---------------|------|--------|------|-------------|
