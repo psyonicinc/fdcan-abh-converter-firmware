@@ -110,7 +110,7 @@ This document is intended for:
 - **Nominal Bit Rate:** 500 kbit/s (default, configurable)
 - **Data Bit Rate:** Same as nominal (FDCAN not utilizing data phase speed-up)
 - **Transceiver:** Integrated 5V CAN transceiver (on-board)
-- **Termination:** Integrated 120Ω termination resistor (on-board)
+- **Termination:** Integrated 120&Omega; termination resistor (on-board)
 - **Bus Signals:** CANH and CANL differential pair
 
 #### 4.1.2 CAN Addressing
@@ -214,8 +214,8 @@ The downstream UART protocol supports multiple control modes:
 
 | Command Header | Control Mode | Data Type | Reply Variant |
 |----------------|--------------|-----------|---------------|
-| 0x10-0x12 | Position | int16_t (±32767 = 0-150°) | 1, 2, or 3 |
-| 0x20-0x22 | Velocity | int16_t (±32767 = 0-3000°/s) | 1, 2, or 3 |
+| 0x10-0x12 | Position | int16_t (&plusmn;32767 = 0-150&deg;) | 1, 2, or 3 |
+| 0x20-0x22 | Velocity | int16_t (&plusmn;32767 = 0-3000&deg;/s) | 1, 2, or 3 |
 | 0x30-0x32 | Torque/Current | int16_t | 1, 2, or 3 |
 | 0x40-0x42 | Voltage | int16_t | 1, 2, or 3 |
 | 0xA0-0xA2 | Read-only | N/A | 1, 2, or 3 |
@@ -282,12 +282,12 @@ These registers define persistent configuration parameters stored in flash memor
 **CAN Bit Rate Calculation:**
 
 ```
-Nominal_Bit_Rate = 170_MHz / (NBRP × (1 + NTSEG1 + NTSEG2))
+Nominal_Bit_Rate = 170_MHz / (NBRP &times; (1 + NTSEG1 + NTSEG2))
 ```
 
 **Default Example:**
 ```
-170_MHz / (2 × (1 + 135 + 34)) = 170_MHz / 340 = 500 kbit/s
+170_MHz / (2 &times; (1 + 135 + 34)) = 170_MHz / 340 = 500 kbit/s
 ```
 
 **Configuration Notes:**
@@ -348,7 +348,7 @@ This block provides high-level structured control of the Ability Hand. Writing t
 
 **Scaling:**
 ```
-position_digital = (angle_degrees / 150.0) × 32767
+position_digital = (angle_degrees / 150.0) &times; 32767
 ```
 
 #### 5.3.4 Motor Setpoints - Voltage (0x00B-0x00D)
@@ -361,7 +361,7 @@ position_digital = (angle_degrees / 150.0) × 32767
 
 **Data Format:** Each word contains two packed int16_t values (motor pairs).
 
-**Scaling:** ±32767 represents full-scale PWM duty cycle (direct voltage control).
+**Scaling:** &plusmn;32767 represents full-scale PWM duty cycle (direct voltage control).
 
 **Use Case:** Open-loop voltage control for testing or specialized control algorithms.
 
@@ -391,13 +391,13 @@ position_digital = (angle_degrees / 150.0) × 32767
 
 **Scaling (to hand):**
 ```
-velocity_digital = (velocity_deg_per_sec / 3000.0) × 32767
+velocity_digital = (velocity_deg_per_sec / 3000.0) &times; 32767
 ```
 
 **Valid Range:**
-- 0 °/s = 0
-- 1500 °/s = 16384
-- 3000 °/s = 32767
+- 0 &deg;/s = 0
+- 1500 &deg;/s = 16384
+- 3000 &deg;/s = 32767
 
 #### 5.3.7 Motor Feedback - Position (0x014-0x016)
 
@@ -407,7 +407,7 @@ velocity_digital = (velocity_deg_per_sec / 3000.0) × 32767
 | 0x015 | Q_ACTUAL_2_3 | int16_t[2] | RO | 0 | Actual position feedback for motors 2-3 |
 | 0x016 | Q_ACTUAL_4_5 | int16_t[2] | RO | 0 | Actual position feedback for motors 4-5 |
 
-**Scaling:** Same as position setpoints (±32767 = 0-150°).
+**Scaling:** Same as position setpoints (&plusmn;32767 = 0-150&deg;).
 
 **Update:** Populated after receiving valid UART reply from hand. Available in all reply variants.
 
@@ -453,7 +453,7 @@ velocity_rad_per_sec = velocity_digital / 4
 | 0x023 | FSR_RAW_12_13 | uint16_t[2] | RO | 0 | FSR sensors 12-13 |
 | 0x024 | FSR_RAW_14_15 | uint16_t[2] | RO | 0 | FSR sensors 14-15 |
 
-**FSR Layout:** 5 fingers × 6 FSRs/finger = 30 FSR sensors total
+**FSR Layout:** 5 fingers &times; 6 FSRs/finger = 30 FSR sensors total
 
 
 **Data Format:** 12-bit ADC values (0-4095). Higher values indicate greater force.
@@ -765,7 +765,7 @@ The firmware uses these defaults:
 
 **Integrated Components:**
 - TLE9250XSJXUMA1 5V CAN transceiver (on-board)
-- 120Ω termination resistor (on-board)
+- 120&Omega; termination resistor (on-board)
 
 **Bit Rate:** 125 kbit/s to 1000 kbit/s (default: 500 kbit/s, classic CAN compliant)
 
